@@ -3,7 +3,7 @@ title: Writing clean tuples in Scala
 date: 2022-10-08 12:00:00 +0000
 categories: [Blog]
 tags: [scala, clean code, tips]     # TAG names should always be lowercase
-img_path: /assets/img/2022-10-08-tuples/
+img_path: /assets/img/2022-10-08-writing-clean-tuples-in-scala/
 ---
 
 How many times have you wondered what is hidden under `._1` in a line of code?
@@ -237,7 +237,7 @@ Also, use cases like
 in Akka Streams seem to be a natural fit for tuples. But this
 particular one encouraged me to wonder if I need a tuple here
 at all. Remember that some complex tuples can be easily replaced by a local
-case class. If they form something coherent (like a context in
+case class. If the elements form something coherent (like a context in
 Akka Streams), a case class is the language structure to put
 them in.
 
