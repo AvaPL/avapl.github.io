@@ -2,6 +2,18 @@
 
 My personal website.
 
+## Testing locally
+
+Install dependencies:
+```shell
+bundle
+```
+
+Run local server:
+```shell
+bundle exec jekyll s
+```
+
 ## Credits
 
 This website uses [Chirpy][chirpy] theme.
