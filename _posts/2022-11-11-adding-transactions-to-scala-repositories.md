@@ -234,12 +234,12 @@ class AccountManagementService(
 }
 ```
 
-Great! We have transactions and the service that decides where to put the
-transaction boundaries.
+Great! We have transactions and the service decides where to put the transaction
+boundaries.
 
 > _Leave transaction control to the client_ is in fact one of the principles of
 designing repositories in
-[Domain-Driven Design](https://books.google.pl/books/about/Domain_Driven_Design.html?id=hHBf4YxMnWMC).
+[Domain-Driven Design](https://books.google.com/books/about/Domain_Driven_Design.html?id=hHBf4YxMnWMC).
 {: .prompt-tip }
 
 ### So where is the catch?
