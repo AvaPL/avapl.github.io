@@ -49,7 +49,7 @@ points
 ### Main goals of the final solution
 
 The requirements that we want our code to fulfill are:
-- safe concurrent execution of operations
+- transactional character of operations execution
 - the services determine the boundaries of the transactions they execute
 - the services are easy to test with repository mocks
 - repositories don't have a predefined effect (eg. `IO`, `Future`) in method
@@ -58,7 +58,12 @@ return types
   use types that are specific to the classes that implement them - this will
   become clear later
 
-## It works, doesn't it?
+> I don't cover the isolation levels in this post. You may still encounter
+concurrency issues without a proper isolation level set on the database or
+transaction level.
+{: .prompt-warning }
+
+## IO repositories
 
 Let's start with the definition of our repositories. The account repository looks
 like this:
@@ -105,17 +110,21 @@ is the one for accounts:
 class PostgresAccountRepository(xa: Transactor[IO]) extends AccountRepository {
 
   override def getBalance(userId: UUID): IO[Option[Int]] =
-    // (...).transact(xa)
+    getBalanceConnectionIO(userId).transact(xa)
 
-  override def addFunds(userId: UUID, amountToAdd: Int): IO[Unit] =
+  private def getBalanceConnectionIO(userId: UUID): ConnectionIO[Option[Int]] =
+    // sql
+
+  override def addFunds(userId: UUID, amountToAdd: Int): IO[Unit] = {
     for {
-      currentBalance <- getBalance(userId)
+      currentBalance <- getBalanceConnectionIO(userId)
       newBalance = currentBalance.getOrElse(0) + amountToAdd
-      _ <- setBalance(userId, newBalance)
+      _ <- setBalanceConnectionIO(userId, newBalance)
     } yield ()
+  }.transact(xa)
 
-  private def setBalance(userId: UUID, balance: Int): IO[Int] =
-    // (...).transact(xa)
+  private def setBalanceConnectionIO(userId: UUID, balance: Int): ConnectionIO[Int] =
+    // sql
 }
 ```
 
@@ -128,17 +137,21 @@ analogous:
 class PostgresPointsRepository(xa: Transactor[IO]) extends PointsRepository {
 
   override def getPoints(userId: UUID): IO[Option[Int]] =
-    // (...).transact(xa)
+    getPointsConnectionIO(userId).transact(xa)
 
-  override def incrementPoints(userId: UUID): IO[Unit] =
+  private def getPointsConnectionIO(userId: UUID): ConnectionIO[Option[Int]] =
+    // sql
+
+  override def incrementPoints(userId: UUID): IO[Unit] = {
     for {
-      currentPoints <- getPoints(userId)
+      currentPoints <- getPointsConnectionIO(userId)
       newPoints = currentPoints.getOrElse(0) + 1
-      _ <- setPoints(userId, newPoints)
+      _ <- setPointsConnectionIO(userId, newPoints)
     } yield ()
+  }.transact(xa)
 
-  private def setPoints(userId: UUID, points: Int): IO[Int] =
-    // (...).transact(xa)
+  private def setPointsConnectionIO(userId: UUID, points: Int): ConnectionIO[Int] =
+    // sql
 }
 ```
 
@@ -162,25 +175,82 @@ as simple as:
 
 ```scala
 val userId = // uuid
-IO
-  .parReplicateAN(
-    n = 4 // set parallelism degree to 4
-  )(
-    1000, // repeat 1000 times
-    accountManagementService.addFunds(userId, 10)
-  )
+accountManagementService.addFunds(userId, 10)
 ```
 
-The code above adds 10 to the user balance 1000 times with the parallelism set
-to 4. Assuming that we are starting with 0 funds and 0 points we should end up
-with 10 000 account balance and 1000 points after this operation. There is just
-one issue - we don't. Running the above `IO` results in some random value put
-in the table rows. For instance, here is one of the result that I've received:
+The code above adds 10 to the user balance. Assuming that we are starting with
+0 funds and 0 points we should end up with the account balance of 10 and 1
+loyalty point.
 
-| user_id                              | balance  | points |
-|:-------------------------------------|:---------|:-------|
-| 50e91efe-ef47-407b-a1be-5a89e105b0af | 4760     | 443    |
+### The problem with the IO approach
 
-These are definitely not the values that we expected.
+The main problem with the `IO` is that the operations in the repositories are
+fully independent. This means that we may add funds, lose connection and end up
+not rewarding the user with his loyalty points. It is definitely better to
+handle the operation as a whole.
 
-### What happened?
+## ConnectionIO repositories
+
+Let's improve the repositories and add transactions across them. As we are using
+doobie, we will make use of `ConnectionIO`. Each executed `ConnectionIO` is a
+[bounded transaction](http://tpolecat.github.io/doobie/docs/17-FAQ.html#how-do-i-do-several-things-in-the-same-transaction-).
+
+The account repository now looks like this:
+
+```scala
+trait AccountRepository {
+  def getBalance(userId: UUID): ConnectionIO[Option[Int]]
+  def addFunds(userId: UUID, amountToAdd: Int): ConnectionIO[Unit]
+}
+```
+
+The points repository in again defined similarly:
+
+```scala
+trait PointsRepository {
+  def getPoints(userId: UUID): ConnectionIO[Option[Int]]
+  def incrementPoints(userId: UUID): ConnectionIO[Unit]
+}
+```
+
+To adjust the Postgres implementations to the above signatures, we just have to
+remove `.transact(xa)` from the methods and `xa` itself as it is no longer used.
+
+So where `xa` goes now? It has to go to the service which will execute the
+transaction:
+
+```scala
+class AccountManagementService(
+  accountRepository: AccountRepository,
+  pointsRepository: PointsRepository
+)(xa: Transactor[IO]) {
+
+  def addFunds(userId: UUID, amountToAdd: Int): IO[Unit] = {
+    for {
+      _ <- accountRepository.addFunds(userId, amountToAdd)
+      _ <- pointsRepository.incrementPoints(userId)
+    } yield ()
+  }.transact(xa)
+}
+```
+
+Great! We have transactions and the service that decides where to put the
+transaction boundaries.
+
+> _Leave transaction control to the client_ is in fact one of the principles of
+designing repositories in
+[Domain-Driven Design](https://books.google.pl/books/about/Domain_Driven_Design.html?id=hHBf4YxMnWMC).
+{: .prompt-tip }
+
+### So where is the catch?
+
+It may not be obvious at the first glance, but we've constrained ourselves. Now
+both the repositories and the service depend on classes from doobie -
+`ConnectionIO` and `Transactor`. What if we wanted to move from doobie to Slick?
+How to easily mock a `Transactor` in tests[^transactor-mock]? If we want to make our code cleaner
+we have to somehow remove doobie dependencies while maintaining the same
+functionalities.
+
+[^transactor-mock]: In fact, it is doable but pretty obscure - [example here](https://blog.softwaremill.com/testing-doobie-programs-425517c1c295).
+
+## Higher kinded types to the rescue
