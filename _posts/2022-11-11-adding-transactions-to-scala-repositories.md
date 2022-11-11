@@ -64,8 +64,8 @@ transaction level.
 
 ## IO repositories
 
-Let's start with the definition of our repositories. The account repository looks
-like this:
+Let's start with the initial, clumsy definition of our repositories that
+we will refactor later. The account repository looks like this:
 
 ```scala
 trait AccountRepository {
@@ -178,7 +178,7 @@ accountManagementService.addFunds(userId, 10)
 ```
 
 The code above adds 10 to the user balance. Assuming that we are starting with
-0 funds and 0 points we should end up with an account balance of 10 and 1
+0 funds and 0 points, we should end up with an account balance of 10 and 1
 loyalty point.
 
 ### The problem with the IO approach
@@ -252,7 +252,7 @@ How to easily mock a `Transactor` in tests?
 [example here](https://blog.softwaremill.com/testing-doobie-programs-425517c1c295).
 {: .prompt-info }
 
-If we want to make our code cleaner we have to somehow remove doobie
+If we want to make our code cleaner, we have to somehow remove doobie
 dependencies while maintaining the same functionalities.
 
 ## Higher kinded types to the rescue
@@ -294,16 +294,16 @@ class AccountManagementService[F[_]: Monad](
 Note that we've also added a `Monad` context bound as for comprehensions are
 using `flatMap` and `map` on `F`.
 
-Okay, we are getting closer. How can we get rid of that `Transactor`? First,
+Okay, we are getting closer. Now, how can we get rid of that `Transactor`? First,
 let's think about what purpose it serves. It is used as an argument in `.transact(xa)`
 calls and transforms a `ConnectionIO` into an `IO`. So the `Transactor` is just
 a transformer which can be denoted as `ConnectionIO ~> IO`. Does it remind you
 of something? Yes, it's just a
 [`FunctionK`](https://typelevel.org/cats/datatypes/functionk.html).
 
-Now we can choose whether we want to stick to an `IO` as our output effect or
-also parametrize it. My choice is to be more flexible, so we'll introduce a
-higher kinded `G`.
+With this knowledge, we can also choose whether we want to stick to an `IO` as our
+output effect or also parametrize it. My choice is to be more flexible, so we'll
+introduce a higher kinded `G`.
 
 The service now looks like this:
 
@@ -329,8 +329,8 @@ implicit unclutters the code. The `transactor` is a `FunctionK` from `F` to `G`,
 where `G` is the output effect of the transaction. Executing a transaction
 enclosed in `F` is as simple as calling `transactor#apply` method.
 
-The last piece that we need is the definition of the transactor itself and
-a slight modification in the service definition:
+The last piece that we need is a transactor instance and a slight modification
+in the service definition:
 
 ```scala
 implicit val transactor: ConnectionIO ~> IO = new (ConnectionIO ~> IO) {
@@ -350,12 +350,12 @@ depend on doobie classes are concrete Postgres implementations of the
 repositories and the implicit transactor which executes the transactions.
 
 > As doobie is built on top of cats, `ConnectionIO` already has a `Monad`
-instance defined which satisfies `F[_]: Monad` context bound of the service.
+instance defined, which satisfies `F[_]: Monad` context bound of the service.
 If you are using something else, you may have to define the instance yourself.
 {: .prompt-info }
 
 This allows us to swap the data access layer without touching the
-repositories or service code at all. Speaking of it...
+repositories or service code at all. Speaking of the tests...
 
 ### Testing the service
 
@@ -396,8 +396,8 @@ repositories using `Id` if you need them.
 ## Summary
 
 In this post, we've implemented a service that uses two repositories to make
-a transactional operation. The service has full control over the
-boundaries of the executed transactions. It is easy to test synchronously using
+a transactional operation. The service has full control over the boundaries
+of the executed transactions. It is also easy to test synchronously using
 mocks. Both repositories and the service do not depend on types from doobie and
 are fully abstract.
 
