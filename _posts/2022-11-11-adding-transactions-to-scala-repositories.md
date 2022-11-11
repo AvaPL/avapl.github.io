@@ -254,3 +254,148 @@ functionalities.
 [^transactor-mock]: In fact, it is doable but pretty obscure - [example here](https://blog.softwaremill.com/testing-doobie-programs-425517c1c295).
 
 ## Higher kinded types to the rescue
+
+Getting rid of the `ConnectionIO`s from the repositories is quite simple. We
+can just replace each reference to it with an `F` which is a higher kinded type.
+This way we end up with:
+
+```scala
+trait AccountRepository[F[_]] {
+  def getBalance(userId: UUID): F[Option[Int]]
+  def addFunds(userId: UUID, amountToAdd: Int): F[Unit]
+}
+```
+
+and
+
+```scala
+trait PointsRepository[F[_]] {
+  def getPoints(userId: UUID): F[Option[Int]]
+  def incrementPoints(userId: UUID): F[Unit]
+}
+```
+
+This way we can use any effect, including `IO`, or even wrap the result in
+a `Future`.
+
+Let's move to a more (but not that much!) complicated aspect of the code, which
+is the service. As our repositories now require a type parameter, we have to
+give it to them. We don't want to use `ConnectionIO` here too, so we again
+introduce an `F` to the class:
+
+```scala
+class AccountManagementService[F[_]: Monad](
+  accountRepository: AccountRepository[F],
+  pointsRepository: PointsRepository[F]
+)(xa: Transactor[IO])
+```
+
+Note that I've also added a `Monad` context bound as for comprehensions are
+using `flatMap` and `map` on `F`.
+
+Okay, we are getting closer. How can we get rid of that `Transactor`? First,
+let's think what purpose it serves. It is used as an argument in `.transact(xa)`
+calls and transforms a `ConnectionIO` into an `IO`. So the `Transactor` is just
+a transformer `ConnectionIO ~> IO`. Does it remind you of something? Yes,
+it's just a [`FunctionK`](https://typelevel.org/cats/datatypes/functionk.html).
+
+Now we can choose whether we want to stick to an `IO` as our output effect or
+also parametrize it. My choice is to be more flexible, so I'll introduce a
+higher kinded `G`.
+
+The service now looks like this:
+
+```scala
+class AccountManagementService[F[_]: Monad, G[_]](
+  accountRepository: AccountRepository[F],
+  pointsRepository: PointsRepository[F]
+)(using transactor: F ~> G) {
+
+  def addFunds(userId: UUID, amountToAdd: Int): G[Unit] =
+    transactor {
+      for {
+        _ <- accountRepository.addFunds(userId, amountToAdd)
+        _ <- pointsRepository.incrementPoints(userId)
+      } yield ()
+    }
+}
+```
+
+I made the `transactor` implicit for convenience. When having multiple services
+or tests, the transactor will probably look the same everywhere so making it
+implicit unclutters the code. The `transactor` is a `FunctionK` from `F` to `G`,
+where `G` is the output effect of the transaction. Executing a transaction
+enclosed in `F` is as simple as calling `transactor#apply` method.
+
+The last piece that we need is the definition of the transactor itself and
+a slight modification in the service definition:
+
+```scala
+given (ConnectionIO ~> IO) with
+  def apply[A](connectionIO: ConnectionIO[A]): IO[A] = connectionIO.transact(xa)
+
+val accountManagementService: AccountManagementService[ConnectionIO, IO] =
+  AccountManagementService(
+    accountRepository = PostgresAccountRepository(),
+    pointsRepository = PostgresPointsRepository()
+  )
+```
+
+And we are done! We have repositories that do not depend on `ConnectionIO` and
+a service that decides on the transaction boundaries. The only thing that
+depends on doobie classes are concrete Postgres implementations of the
+repositories and the implicit transactor which executes the transactions. This
+allows us to swap the data access layer without touching the repositories or
+service code at all. Speaking of it...
+
+## Testing the service
+
+For free, we get all the benefits of using higher kinded types so easy mocking
+and synchronous tests for classes that most often have asynchronous nature.
+Let's take a look at an example test implemented using
+[ScalaTest](https://www.scalatest.org/):
+
+```scala
+"addFunds" when {
+  "given an user ID and an amount to add" should {
+    "call the account repository with the amount and increment points in the points repository" in {
+      val testUserId = UUID.randomUUID()
+      val testAmountToAdd = 123
+
+      val accountRepository = new AccountRepository[Id] { // repository mock
+        def addFunds(userId: UUID, amountToAdd: Int): Unit = {
+          userId shouldBe testUserId
+          amountToAdd shouldBe testAmountToAdd
+          ()
+        }
+
+        // (...)
+      }
+      val pointsRepository = new PointsRepository[Id] { // repository mock
+        def incrementPoints(userId: UUID): Unit = {
+          userId shouldBe testUserId
+          ()
+        }
+
+        // (...)
+      }
+      given (Id ~> Id) = FunctionK.id[Id] // transactor
+
+      val accountManagementService = AccountManagementService(accountRepository, pointsRepository)
+
+      accountManagementService.addFunds(testUserId, testAmountToAdd)
+    }
+  }
+}
+```
+
+Here I'm using cats identity monad `Id` which is just a pure value. We can use
+it as our transactional type and the output effect. This allows easy synchronous
+tests for our service.
+
+> As a bonus, you also get the ability to define synchronous in-memory
+repositories if you need them.
+{: .prompt-tip }
+
+## Summary
+
