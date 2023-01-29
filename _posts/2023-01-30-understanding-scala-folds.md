@@ -121,9 +121,11 @@ What would happen though if we defined it like this?
 List(4, 2, 7).foldLeft(0)((acc, int) => int + acc) // 13
 ```
 
-Well, nothing, the result will be the same. Okay, that's boring. We just went
-from left to right and applied added both operands in both cases. Let's take
-a look at another `f`, subtraction this time.
+Well, nothing. The result will be the same.
+
+Okay, that's boring. We just went from left to right and applied added both
+operands in both cases. Let's take a look at another `f`, subtraction this
+time.
 
 ```scala
 List(4, 2, 7).foldLeft(0)(_ - _) // -13
@@ -143,7 +145,8 @@ to right in this case too?
 
 Well, we were but the `f` in this case swapped the order of operands. This means
 that `f` affects the result of operations that are non-commutative, like
-subtraction or string concatenation. There we have it, our first caveat of
-folds!
+subtraction or string concatenation. Even when we know that we cannot freely
+swap the operands here, it's hard to predict the result without analyzing the
+expression tree. There we have it, our first caveat of folds!
 
 ### foldRight
