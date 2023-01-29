@@ -21,4 +21,37 @@ book. I highly recommend reading it!
 
 ![Fluffy monster on carpet](fluffy_monster_on_carpet.png){: w="350"}
 
-## What is a fold?
+## Some explanation first
+
+### What is a fold?
+
+Instead of a direct definition or quoting the documentation,
+I would like to describe it in the simplest way possible. Fold is
+an operation that takes an init element and a collection and then
+aggregates (folds) it into a single value. This single value can
+be anything - a sum, a concatenation or even a new collection.
+Simple, isn't it?
+
+![Fold definition example](fold_definition_example.png)
+
+### What is associativity and commutativity?
+
+When an operation is associative, it means that no matter how we put
+parentheses in it, the result will be the same. For example, addition is
+associative, whereas subtraction is not.
+
+![Associativity example](associativity.png)
+
+Commutativity property means that the order of operands does not matter
+in the operation. We can observe it again on addition, which is commutative
+and on subtraction, which is not.
+
+![Commutativity example](commutativity.png)
+
+Quite often these properties come together, but that's not always the case.
+For instance, string concatenation is associative but not commutative.
+
+![Associative but not commutative example](associative_not_commutative.png)
+
+Why are we talking about this? Because both of these properties matter for
+folds. Let's see how our results may be affected by that.
