@@ -102,6 +102,25 @@ of accumulated value and the last element of the list. I'll refer to that
 fact later.
 {: .prompt-tip }
 
+#### Implementation
+
+We can implement `foldLeft` for a `List[A]` using tail recursion:
+
+```scala
+@tailrec
+final def foldLeft[B](z: B)(f: (B, A) => B): B =
+  list match {
+    case head :: tail => tail.foldLeft(f(z, head))(f)
+    case Nil          => z
+  }
+```
+
+This means that `foldLeft` is stack safe, and you won't see
+`StackOverflowError`s. Note that the evaluation terminates on the very last
+element so the whole list is always traversed.
+
+#### Examples
+
 Let's assume that `f` is addition:
 
 ```scala
@@ -150,3 +169,103 @@ swap the operands here, it's hard to predict the result without analyzing the
 expression tree. There we have it, our first caveat of folds!
 
 ### foldRight
+
+You might have guessed that `foldRight` associates the operations to the right.
+
+Using the same `List(4, 2, 7)`, we'll jump straight into the expression formed
+by:
+
+```scala
+List(4, 2, 7).foldRight(0)(f)
+```
+
+It gives us:
+
+![foldRight](foldright.png){: w="500"}
+
+Note that the initial `0` is now on the right side of the list. If you
+understood how `foldLeft` works, it should be easy to understand `foldRight`.
+But this is where the fun begins!
+
+#### Implementation
+
+The most straightforward implementation of `foldRight` for `List[A]` is via
+recursion:
+
+```scala
+def foldRight[B](z: B)(f: (A, B) => B): B =
+  list match {
+    case head :: tail => f(head, tail.foldRight(z)(f))
+    case Nil => z
+  }
+```
+
+We have to begin the evaluation from the last element of the list, so we build
+a chain of recursive calls until we reach the end. This has a major
+disadvantage though. We'll sooner or later run out of stack frames because
+of stack overflows.
+
+We can definitely do better. If we have to start from the end of the list,
+why don't we just put the last element at the beginning by reversing the list?
+This is a thing that we can do in a stack safe way. How? Via `foldLeft`!
+
+```scala
+def reverse: List[A] =
+  list.foldLeft(List.empty[A])((acc, a) => a :: acc)
+```
+
+Here, we are using fold to transform one collection into another one. So now,
+how can we perform a `foldRight` on a reversed list? Again, via `foldLeft`.
+Surprising, isn't it?
+
+```scala
+def foldRight[B](z: B)(f: (A, B) => B): B =
+  list.reverse.foldLeft(z)((acc, a) => f(a, acc))
+```
+
+We have a stack safe implementation of `foldRight`, but it comes at a cost.
+By using `foldLeft` twice, we are also traversing the list twice. This is
+a thing to consider when we want to use `foldRight`.
+
+> Scala standard library implements `foldRight` exactly this way.
+{: .prompt-tip }
+
+#### Examples
+
+If you understand `foldLeft`, understanding the examples for `foldRight`
+should be easy.
+
+```scala
+// Equivalent of:
+//   List(4, 2, 7).foldLeft(0)(_ + _)
+// as addition is associative and commutative.
+List(4, 2, 7).foldRight(0)(_ + _) // 13
+```
+
+```scala
+// Equivalent of:
+//   List(4, 2, 7).foldLeft(0)(_ - _)
+List(4, 2, 7).foldRight(0)((int, acc) => acc - int) // -13
+```
+
+```scala
+// Equivalent of:
+//   List(4, 2, 7).foldLeft(0)((acc, int) => int - acc)
+List(4, 2, 7).foldRight(0)(_ - _) // 9
+```
+
+Note that by convention, the accumulator for `foldRight` is the right argument
+of `f`. This is a thing that may help you or confuse you more, especially
+when using wildcards.
+
+The last interesting example of `foldRight` use case is appending to a list.
+If we are starting the evaluation from the end, we can add a single element or
+a whole list to the end effortlessly:
+
+```scala
+List(4, 2, 7).foldRight(List(0))(_ :: _) // List(4, 2, 7, 0)
+```
+
+#### To infinity, and beyond!
+
+## Summary
