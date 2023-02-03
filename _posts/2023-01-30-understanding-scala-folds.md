@@ -80,7 +80,7 @@ In my opinion, it's better to think about this operation as a fold that
 *associates* to the left. Why? Because it doesn't really go from left to
 right, let me explain.
 
-Let's assume that we have a `List(4, 2, 7)`, an init value of `0`, and a binary
+Assume that we have a `List(4, 2, 7)`, an init value of `0`, and a binary
 operation `f`. In the code it can be described as:
 
 ```scala
@@ -95,7 +95,8 @@ We start with an initial value of `0`. Then `f` is applied on `0` and `4`.
 Then, `f` is applied to the result of the previous operation, and `2`. The same
 thing happens for `7`. Did we go from left to right? Kind of, we went through
 the list from left to right to construct a whole expression which then was
-evaluated as the final result.
+evaluated as the final result. The result is a consequence of parentheses in
+the expression rather than the direction itself.
 
 > The important thing to note is that the final result of `foldLeft` is `f`
 of the accumulated value and the last element of the list. I'll refer to that
@@ -115,7 +116,7 @@ final def foldLeft[B](z: B)(f: (B, A) => B): B =
   }
 ```
 
-This means that `foldLeft` is stack safe, and you won't see
+This means that `foldLeft` is stack-safe, and you won't see
 `StackOverflowError`s. Note that the evaluation terminates on the very last
 element so the whole list is always traversed.
 
@@ -140,7 +141,7 @@ What would happen though if we defined it like this?
 List(4, 2, 7).foldLeft(0)((acc, int) => int + acc) // 13
 ```
 
-Well, nothing. The result will be the same.
+Well, nothing. The result will be the same because addition is commutative.
 
 Okay, that's boring. We just went from left to right and applied added both
 operands in both cases. Let's take a look at another `f`, subtraction this
@@ -171,7 +172,6 @@ expression tree. There we have it, our first caveat of folds!
 ### foldRight
 
 You might have guessed that `foldRight` associates the operations to the right.
-
 Using the same `List(4, 2, 7)`, we'll jump straight into the expression formed
 by:
 
@@ -323,8 +323,8 @@ extension [A](lazyList: LazyList[A]) {
 
 `lazyFoldRight` recursively calls itself to evaluate the final value. `f` has
 type `(A, => B) => B` which means that the second argument won't be evaluated
-if it is not needed. Unfortunately, we cannot make use of tail recursion here
-so this method will suffer from stack overflows if the result requires
+if it is not needed. Unfortunately, we cannot make use of tail recursion here.
+This method will suffer from stack overflows if the result requires
 evaluating too many elements. However, it allows us to use it like:
 
 ```scala
