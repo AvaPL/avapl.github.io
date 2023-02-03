@@ -8,7 +8,7 @@ img_path: /assets/img/2023-01-30-understanding-scala-folds/
 
 One of the first things that you encounter in the functional
 programming world are functions that operate on collections.
-In this post I will focus on the **fold** operation. It might
+In this post, I will focus on the **fold** operation. It might
 sometimes be as confusing as it is common in our programs,
 especially when used with non-associative or non-commutative
 operators. Don't worry if you don't know what it means, more
@@ -26,15 +26,15 @@ book. I highly recommend reading it!
 ### What is a fold?
 
 Instead of a direct definition or quoting the documentation,
-I would like to describe it in the simplest way possible. **Fold** is
+I would like to describe it in the simplest way possible. The **fold** is
 an operation that takes an init element and a collection and then
 aggregates (folds) it into a single value. This single value can
-be anything - a sum, a concatenation or even a new collection.
+be anything - a sum, a concatenation, or even a new collection.
 Simple, isn't it?
 
 ![Fold definition example](fold_definition_example.png)
 
-### What is associativity and commutativity?
+### What are associativity and commutativity?
 
 When an operation is **associative**, it means that no matter how we put
 parentheses in it, the result will be the same. For example, addition is
@@ -43,7 +43,7 @@ associative, whereas subtraction is not.
 ![Associativity example](associativity.png)
 
 **Commutativity** property means that the order of operands does not matter
-in the operation. We can observe it again on addition, which is commutative
+in the operation. We can observe it again on addition, which is commutative,
 and on subtraction, which is not.
 
 ![Commutativity example](commutativity.png)
@@ -58,12 +58,12 @@ folds. You'll see how our results may be affected by that in the next sections.
 
 ## Types of folds
 
-There are 3 methods that allow folding in Scala:
+Three methods allow folding in Scala:
 [`foldLeft`](https://scala-lang.org/api/3.x/scala/collection/IterableOnceOps.html#foldLeft-fffff9e1),
-[`foldRight`](https://scala-lang.org/api/3.x/scala/collection/IterableOnceOps.html#foldRight-fffff9e1)
+[`foldRight`](https://scala-lang.org/api/3.x/scala/collection/IterableOnceOps.html#foldRight-fffff9e1),
 and
 [`fold`](https://scala-lang.org/api/3.x/scala/collection/IterableOnceOps.html#fold-fffff9e1).
-The first two have associativity (or if you prefer, direction) specified in
+The first two have associativity (or if you prefer - direction) specified in
 their names, and the third one is a fold that doesn't have a predefined order
 of operations. `fold` defaults to `foldLeft` and can be overridden if the
 collection supports a more efficient way of unordered folding. It won't be
@@ -80,7 +80,7 @@ In my opinion, it's better to think about this operation as a fold that
 *associates* to the left. Why? Because it doesn't really go from left to
 right, let me explain.
 
-Let's assume that we have a `List(4, 2, 7)`, an init value of `0` and a binary
+Let's assume that we have a `List(4, 2, 7)`, an init value of `0`, and a binary
 operation `f`. In the code it can be described as:
 
 ```scala
@@ -91,14 +91,14 @@ List(4, 2, 7).foldLeft(0)(f)
 
 ![foldLeft](foldleft.png){: w="500"}
 
-We start with initial value of `0`. Then `f` is applied on `0` and `4`.
-Then, `f` is applied to the result of the previous operation and `2`. The same
+We start with an initial value of `0`. Then `f` is applied on `0` and `4`.
+Then, `f` is applied to the result of the previous operation, and `2`. The same
 thing happens for `7`. Did we go from left to right? Kind of, we went through
 the list from left to right to construct a whole expression which then was
 evaluated as the final result.
 
 > The important thing to note is that the final result of `foldLeft` is `f`
-of accumulated value and the last element of the list. I'll refer to that
+of the accumulated value and the last element of the list. I'll refer to that
 fact later.
 {: .prompt-tip }
 
@@ -163,7 +163,7 @@ to right in this case too?
 ![foldLeft subtraction commutativity](foldleft_subtraction_commutativity.png){: w="500"}
 
 Well, we were but the `f` in this case swapped the order of operands. This means
-that `f` affects the result of operations that are non-commutative, like
+that `f` affects the result of non-commutative operations, like
 subtraction or string concatenation. Even when we know that we cannot freely
 swap the operands here, it's hard to predict the result without analyzing the
 expression tree. There we have it, our first caveat of folds!
@@ -207,7 +207,7 @@ of stack overflows.
 
 We can definitely do better. If we have to start from the end of the list,
 why don't we just put the last element at the beginning by reversing the list?
-This is a thing that we can do in a stack safe way. How? Via `foldLeft`!
+This is a thing that we can do in a stack-safe way. How? Via `foldLeft`!
 
 ```scala
 def reverse: List[A] =
@@ -223,7 +223,7 @@ def foldRight[B](z: B)(f: (A, B) => B): B =
   list.reverse.foldLeft(z)((acc, a) => f(a, acc))
 ```
 
-We have a stack safe implementation of `foldRight`, but it comes at a cost.
+We have a stack-safe implementation of `foldRight`, but it comes at a cost.
 By using `foldLeft` twice, we are also traversing the list twice. This is
 a thing to consider when we want to use `foldRight`.
 
@@ -268,4 +268,84 @@ List(4, 2, 7).foldRight(List(0))(_ :: _) // List(4, 2, 7, 0)
 
 #### To infinity, and beyond!
 
+Do you remember that the final result of `foldLeft` is `f` of the accumulated
+value and the last element of the list? For `foldRight`, it is `f` of the first
+element and the accumulated value. Why might it be useful?
+
+Imagine that we have quite a long list of booleans... perhaps an infinite one.
+
+![Infinite list](infinitelist.png)
+
+We now may want to apply the logic `and` to that whole list and get a result.
+We definitely have an intuition that no matter what is in the infinity, the
+fold should return `false` because the second element of the list is `false`.
+Note that `and` is not strict in its second argument. That means that if we
+have `false && someValue`, `someValue` won't be evaluated because the result
+can be returned just by evaluating the first argument.
+
+Let's try to define this list in the code and fold it via `foldLeft`:
+
+```scala
+val infiniteBooleans = true #:: false #:: LazyList.continually(true)
+infiniteBooleans.foldLeft(true)(_ && _)
+```
+
+We've put `true` here as the init element as it is a neutral element of the
+logical `and`. The result of the above program is not something that we want
+though, it just hangs. The reason for this is the fact that `foldLeft` has
+to evaluate the last element to return the result, as mentioned above. Because
+the list is infinite, it'll never reach that element. Non-strictness of `and`
+doesn't help here at all.
+
+Luckily, we have `foldRight`! It just needs the first element for the final
+result so if we supply a non-strict `f`, it should work even for infinite
+lists. As `and` is associative and commutative, we can just change `foldLeft`
+to `foldRight` and we are done:
+
+```scala
+infiniteBooleans.foldRight(true)(_ && _)
+```
+
+Now we receive the result imme... wait, it still hangs. Why? It turns out that
+`foldRight` for `LazyList`s still uses that trick with `reverse` and `foldLeft`
+that was mentioned above. This means that we are still limited by the
+`foldLeft` constraints. Luckily, we can fix that ourselves:
+
+```scala
+extension [A](lazyList: LazyList[A]) {
+  def lazyFoldRight[B](z: B)(f: (A, => B) => B): B =
+    lazyList match {
+      case head #:: tail => f(head, tail.lazyFoldRight(z)(f))
+      case _ => z
+    }
+}
+```
+
+`lazyFoldRight` recursively calls itself to evaluate the final value. `f` has
+type `(A, => B) => B` which means that the second argument won't be evaluated
+if it is not needed. Unfortunately, we cannot make use of tail recursion here
+so this method will suffer from stack overflows if the result requires
+evaluating too many elements. However, it allows us to use it like:
+
+```scala
+infiniteBooleans.lazyFoldRight(true)(_ && _)
+```
+
+and get `false` immediately. Awesome!
+
 ## Summary
+
+In this post, we went through the implementation details and fun facts about
+**fold**s. I hope that you know now how they differ from each other, how to use
+them, and what kind of unexpected behaviors you may encounter. What is more,
+the knowledge that you've gained also applies to **reduce**, as it can be
+implemented via fold.
+
+You may be wondering now whether `foldLeft` or `foldRight` is better. The
+answer is quite straightforward. If your operation is associative, then use
+`foldLeft`. If it isn't, just use the fold that calculates the correct result.
+In rare cases of infinite lists and non-strict `f`, you have to implement your
+own `lazyFoldRight` which will terminate quickly enough to not overflow the
+stack.
+
+Thank you for reading!
