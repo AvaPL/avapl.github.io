@@ -192,7 +192,7 @@ operation as a whole.
 
 Let's improve the repositories and add transactions across them. As we are using
 doobie, we'll make use of `ConnectionIO`. Each executed `ConnectionIO` is a
-[bounded transaction](http://tpolecat.github.io/doobie/docs/17-FAQ.html#how-do-i-do-several-things-in-the-same-transaction-).
+[bounded transaction](https://tpolecat.github.io/doobie/docs/17-FAQ.html#how-do-i-do-several-things-in-the-same-transaction-).
 
 The account repository now looks like this:
 

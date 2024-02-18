@@ -15,7 +15,7 @@ operators. Don't worry if you don't know what it means, more
 on that below!
 
 > This post was inspired by my deep dive into Haskell after reading
-[Learn You a Haskell for Great Good!](http://learnyouahaskell.com/)
+[Learn You a Haskell for Great Good!](https://learnyouahaskell.com/)
 book. I highly recommend reading it!
 {: .prompt-info }
 
