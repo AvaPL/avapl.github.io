@@ -3,16 +3,12 @@
 # Import the theme
 theme: jekyll-theme-chirpy
 
-# Change the following value to '/PROJECT_NAME' ONLY IF your site type is GitHub Pages Project sites
-# and doesn't have a custom domain.
-baseurl: ''
-
 # The language of the webpage › http://www.lingoes.net/en/translator/langcode.htm
 # If it has the same name as one of the files in folder `_data/locales`, the layout language will also be changed,
 # otherwise, the layout language will use the default value of 'en'.
 lang: en
 
-# Change to your timezone › http://www.timezoneconverter.com/cgi-bin/findzone/findzone
+# Change to your timezone › https://kevinnovak.github.io/Time-Zone-Picker
 timezone: Europe/Warsaw
 
 # jekyll-seo-tag settings › https://github.com/jekyll/jekyll-seo-tag/blob/master/docs/usage.md
@@ -25,8 +21,9 @@ tagline: Sharing little thoughts about backend development   # it will display a
 description: >-                        # used by seo meta and the atom feed
   Sharing little thoughts about backend development
 
-# fill in the protocol & hostname for your site, e.g., 'https://username.github.io'
-url: 'https://avapl.github.io'
+# Fill in the protocol & hostname for your site.
+# e.g. 'https://username.github.io', note that it does not end with a '/'.
+url: "https://avapl.github.io"
 
 github:
   username: AvaPL             # change to your github username
@@ -53,11 +50,10 @@ google_site_verification: gl7Mkc93h-0cWBdxLxziR116845AOY_DfOPgwRKeP-8           
 # The end of `jekyll-seo-tag` settings
 
 google_analytics:
-  id:                 # fill in your Google Analytics ID
-  # Google Analytics pageviews report settings
-  pv:
-    proxy_endpoint:   # fill in the Google Analytics superProxy endpoint of Google App Engine
-    cache_path:       # the local PV cache data, friendly to visitors from GFW region
+  id: # fill in your Google Analytics ID
+
+goatcounter:
+  id: # fill in your Goatcounter ID
 
 # Prefer color scheme setting.
 #
@@ -82,7 +78,11 @@ img_cdn:
 # the avatar on sidebar, support local or CORS resources
 avatar: https://avatars.githubusercontent.com/u/41956006
 
-# boolean type, the global switch for ToC in posts.
+# The URL of the site-wide social preview image used in SEO `og:image` meta tag.
+# It can be overridden by a customized `page.image` in front matter.
+social_preview_image: # string, local or CORS resources
+
+# boolean type, the global switch for TOC in posts.
 toc: true
 
 comments:
@@ -114,9 +114,19 @@ assets:
     env:          # [development|production]
 
 pwa:
-  enabled: true   # the option for PWA feature
+  enabled: true # the option for PWA feature (installable)
+  cache:
+    enabled: true # the option for PWA offline cache
+    # Paths defined here will be excluded from the PWA cache.
+    # Usually its value is the `baseurl` of another website that
+    # shares the same domain name as the current website.
+    deny_paths:
+    # - "/example"  # URLs match `<SITE_URL>/example/*` will not be cached by the PWA
 
 paginate: 10
+
+# The base URL of your site
+baseurl: ""
 
 # ------------ The following options are not recommended to be modified ------------------
 
@@ -138,7 +148,7 @@ collections:
 
 defaults:
   - scope:
-      path: ''          # An empty string here means all files in the project
+      path: ""          # An empty string here means all files in the project
       type: posts
     values:
       layout: post
@@ -152,15 +162,11 @@ defaults:
     values:
       comments: false
   - scope:
-      path: ''
+      path: ""
       type: tabs             # see `site.collections`
     values:
       layout: page
       permalink: /:title/
-  - scope:
-      path: assets/img/favicons
-    values:
-      swcache: true
   - scope:
       path: assets/js/dist
     values:
@@ -179,14 +185,13 @@ compress_html:
     envs: [development]
 
 exclude:
-  - '*.gem'
-  - '*.gemspec'
+  - "*.gem"
+  - "*.gemspec"
+  - docs
   - tools
   - README.md
-  - CHANGELOG.md
   - LICENSE
-  - gulpfile.js
-  - node_modules
+  - rollup.config.js
   - package*.json
 
 jekyll-archives:
