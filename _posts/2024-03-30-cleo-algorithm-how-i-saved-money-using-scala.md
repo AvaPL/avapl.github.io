@@ -1,9 +1,9 @@
 ---
 title: "Cleo algorithm: How I saved money using Scala"
-date: 2024-03-23 12:00:00 +0000
+date: 2024-03-30 12:00:00 +0000
 categories: [ Blog ]
 tags: [ scala, algorithms ]     # TAG names should always be lowercase
-img_path: /assets/img/2024-03-23-cleo-algorithm-how-i-saved-money-using-scala/
+img_path: /assets/img/2024-03-30-cleo-algorithm-how-i-saved-money-using-scala/
 ---
 
 We often perceive programming as ~~a way to earn money~~ a hobby, yet seldom consider its potential for saving money. In
@@ -28,16 +28,16 @@ Here's how the discount program works:
 | 4                    | -80% off the cheapest product |
 | 5 or more            | The cheapest product for §1   |
 
-You might already see an opportunity for optimization here. Consider this scenario: you wish to purchase three products
-priced at **§100**, **§100**, and **§1**. If bought together, the total cost is **§200.45**. However, by splitting the
-purchase into two orders - **(§100, §100)** and **(§1)** - you'd only pay **§171**. This strategy seems like a
-reasonable approach to saving, doesn't it?
+You might already see an opportunity for cost optimization here. Consider this scenario: you wish to purchase three
+products priced at **§100**, **§100**, and **§1**. If bought together, the total cost is **§200.45**. However, by
+splitting the purchase into two orders - **(§100, §100)** and **(§1)** - you'd only pay **§171**! This strategy seems
+like a reasonable way to save some money, doesn't it?
 
 ![Example calculation](example_calculation.png){: w="550"}
 
 This observation inspired me to devise a dedicated algorithm to tackle this problem: **the Cleo algorithm**.
 
-> The algorithm's name is a nod to the name of the artist featured in the store's advertisements. 😄
+> The algorithm's name is a nod to the name of the artist featured in the store's advertisements 😄
 {: .prompt-info }
 
 ## The algorithm
@@ -62,7 +62,7 @@ type ProductGroupCombination = Set[ProductGroup]
 
 [//]: # (@formatter:on)
 
-Here, a `ProductGroup` represents a subset of items you wish to order, and a `ProductGroupCombination` is a collection
+Here, `ProductGroup` represents a subset of items you wish to order, and `ProductGroupCombination` is a collection
 of product groups that collectively contain all the items you want to order. The meanings of `Price` and `Product` are
 self-explanatory.
 
@@ -133,11 +133,11 @@ on a `Set`. While there are likely multiple approaches to achieving this, here's
 
 1. If the `ProductGroup` is empty, return a `Set` with a single, empty `ProductGroupCombination`.
 2. Otherwise, identify all non-empty subsets of the input product group. For instance, if the input
-   is `(plushie, snack, crayon)`, the subsets would
-   include `(plushie, snack)`, `(snack, crayon)`, `(plushie, crayon)`, `(plushie)`, `(snack)`, and `(crayon)`. Here,
+   is `{plushie, snack, crayon}`, the subsets would include `{plushie, snack, crayon}` (yes, the same as the
+   input), `{plushie, snack}`, `{snack, crayon}`, `{plushie, crayon}`, `{plushie}`, `{snack}`, and `{crayon}`. Here,
    Scala's `subsets` method is particularly helpful.
-3. For each subset, determine all combinations of the remaining products. For example, if the subset is `(plushie)`, the
-   remaining product combinations would be `((snack, crayon))` and `((snack), (crayon))`.
+3. For each subset, determine all combinations of the remaining products. For example, if the subset is `{plushie}`, the
+   remaining product combinations would be `[{snack, crayon}]` and `[{snack}, {crayon}]`.
 4. Merge each combination with the corresponding subset, generating a `ProductGroupCombination`. The final result is
    a `Set[ProductGroupCombination]`.
 
@@ -182,7 +182,7 @@ val (cheapestCombination, lowestPrice) = findCheapestCombination(products)
 // The cheapest order combination is [{bubblewrap, crayon, glowstick}, {plushie, snack}] with price 8400.85
 ```
 
-In this scenario, we saved almost **§200**! It was certainly worth the effort.
+In the above scenario, we saved almost **§200**! It was certainly worth the effort.
 
 ## Summary
 
