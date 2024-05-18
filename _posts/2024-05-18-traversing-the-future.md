@@ -40,7 +40,7 @@ Of course, there is a whole host of other use cases. This post will be about `.t
 about `.sequence`.
 
 > This post aims to explain one of the reasons why using `Future`s with cats is generally discouraged. While it often
-> fits into "pragmatic" code, it can lead to unexpected behavior if used without extra caution.
+> fits into "pragmatic" code, it might lead to unexpected behavior if used without extra caution.
 {: .prompt-warning }
 
 ### Why is Future not pure?
