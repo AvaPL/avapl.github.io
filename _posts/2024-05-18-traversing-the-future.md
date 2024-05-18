@@ -29,8 +29,8 @@ building blocks of Akka and a natural wrapper around Java `Future`s. Scala provi
 `Either`s come into play, things get more complicated. Manipulating `Future[Either[DomainError, Result]]` is not as
 straightforward as operating on `Future[Result]`.
 
-For this reason, I frequently use [cats](https://typelevel.org/cats/) to simplify things. Although `cats` is
-designed to work with purely functional code, it also
+For this reason, I frequently use [cats](https://typelevel.org/cats/) to simplify things. Although cats is designed to
+work with purely functional code, it also
 has [interop with `Future`s](https://typelevel.org/cats/api/cats/instances/FutureInstances.html). This interop allows
 us, for instance, to:
 
