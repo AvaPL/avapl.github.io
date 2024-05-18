@@ -22,3 +22,25 @@ one of those challenges.
 ![Fluffy monsters flying](fluffy_monsters_flying.jpg){: w="400"}
 
 ## The context
+
+I might be wrong, but I think that the impure class I use most frequently is the `Future`. It's one of the basic
+building blocks of Akka and a natural wrapper around Java `Future`s. Scala provides various ways to manipulate
+`Future`s, including methods defined in the `Future` itself and for-comprehensions. However, when `Option`s and
+`Either`s come into play, things get more complicated. Manipulating `Future[Either[DomainError, Result]]` is not as
+straightforward as operating on `Future[Result]`.
+
+For this reason, I frequently use [cats](https://typelevel.org/cats/) to simplify things. Although `cats` is
+designed to work with purely functional code, it also
+has [interop with `Future`s](https://typelevel.org/cats/api/cats/instances/FutureInstances.html). This interop allows
+us, for instance, to:
+
+- Use `EitherT[Future, DomainError, Result]` instead of `Future[Either[DomainError, Result]]`
+- Use `.void` instead of `.map(_ => ())`
+- Use `foo |+| bar` instead of `foo.flatMap(foo => bar.map(bar => foo + bar))`
+
+Of course, there is a whole host of other use cases. This post will be about `.traverse` and also a bit
+about `.sequence`.
+
+### Why is Future not pure?
+
+### What is a functional traversal?
