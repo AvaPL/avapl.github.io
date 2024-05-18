@@ -30,9 +30,7 @@ building blocks of Akka and a natural wrapper around Java `Future`s. Scala provi
 straightforward as operating on `Future[Result]`.
 
 For this reason, I frequently use [cats](https://typelevel.org/cats/) to simplify things. Although cats is designed to
-work with purely functional code, it also
-has [interop with `Future`s](https://typelevel.org/cats/api/cats/instances/FutureInstances.html). This interop allows
-us, for instance, to:
+work with purely functional code, it also has interop with `Future`s. This interop allows us, for instance, to:
 
 - Use `EitherT[Future, DomainError, Result]` instead of `Future[Either[DomainError, Result]]`
 - Use `.void` instead of `.map(_ => ())`
@@ -40,6 +38,10 @@ us, for instance, to:
 
 Of course, there is a whole host of other use cases. This post will be about `.traverse` and also a bit
 about `.sequence`.
+
+> This post aims to explain one of the reasons why using `Future`s with cats is generally discouraged. While it often
+fits into "pragmatic" code, it can lead to unexpected behavior if used without extra caution.
+{: .prompt-warning }
 
 ### Why is Future not pure?
 
