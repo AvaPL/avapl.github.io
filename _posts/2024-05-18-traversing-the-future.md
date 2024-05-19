@@ -41,8 +41,48 @@ about `.sequence`.
 
 > This post aims to explain one of the reasons why using `Future`s with cats is generally discouraged. While it often
 > fits into "pragmatic" code, it might lead to unexpected behavior if used without extra caution.
-{: .prompt-warning }
+> {: .prompt-warning }
 
 ### Why is Future not pure?
+
+Long story short, the problem with `Future` is that it's evaluated eagerly. The moment a `Future` is defined, it
+immediately starts the computation. You might wonder if that's a problem at all - it turns out it might be. Consider the
+following two snippets:
+
+```scala
+for {
+  _ <- Future(println("hello"))
+  _ <- Future(println("hello"))
+} yield ()
+
+// Output:
+// hello
+// hello
+```
+
+```scala
+val hello = Future(println("hello"))
+
+for {
+  _ <- hello
+  _ <- hello
+} yield ()
+
+// Output:
+// hello
+```
+
+If `Future` was pure, the results would be the same. However, because of its eager evaluation, which breaks referential
+transparency, the results are different. If we used `IO` here instead, we would receive the same output.
+
+> Note that the problem isn't about using `println`, which has a side effect. Side effects, when correctly enclosed in
+> an `IO` (or similar abstraction), are pure.
+{: .prompt-info }
+
+> If you have to use a `Future`, there is a way to wrap it with an `IO` to make it pure.
+> See
+> [IO#fromFuture](https://typelevel.org/cats-effect/api/3.x/cats/effect/IO$.html#fromFuture[A](fut:cats.effect.IO[scala.concurrent.Future[A]]):cats.effect.IO[A])
+> for more details.
+{: .prompt-tip }
 
 ### What is a functional traversal?
