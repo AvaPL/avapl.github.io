@@ -41,7 +41,7 @@ about `.sequence`.
 
 > This post aims to explain one of the reasons why using `Future`s with cats is generally discouraged. While it often
 > fits into "pragmatic" code, it might lead to unexpected behavior if used without extra caution.
-> {: .prompt-warning }
+{: .prompt-warning }
 
 ### Why is Future not pure?
 
