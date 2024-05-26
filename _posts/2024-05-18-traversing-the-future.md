@@ -125,3 +125,25 @@ This makes sense because if the second `.sequence` worked, we would be able, for
 before the computation inside the `Future` was finished.
 
 #### .traverse
+
+Traversal goes one step further than `.sequence` by additionally converting `A` to `B`. Imagine that instead of
+having `F[G[A]]`, we have an `F[A]` and a function `A => G[B]`. After we apply that function to `A`, we `.sequence` the
+result. That's what `.traverse` does.
+
+Moreover, `.traverse` can be implemented via `.sequence`. `.traverse(f)` is the same thing as `.map(f).sequence`.
+
+Let's see an example, analogous to the previous one:
+
+```scala
+import cats.implicits._
+
+val foo = List("1")
+println(foo.traverse(_.toIntOption)) // Some(List(1))
+val bar = List("not an Int")
+println(bar.traverse(_.toIntOption)) // None
+```
+
+![.traverse](traverse.png){: w="500"}
+_.traverse applied to a List[String] using a String => Option[Int] function_
+
+## The challenge
