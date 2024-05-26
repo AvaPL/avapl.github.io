@@ -86,3 +86,42 @@ transparency, the results are different. If we used `IO` here instead, we would 
 {: .prompt-tip }
 
 ### What is a functional traversal?
+
+Now, quickly about `.traverse`. To simplify the explanation, we'll start with `.sequence` instead.
+
+#### .sequence
+
+Imagine that we have an element of type `A`. Let's first wrap it with a `G[_]`. Then, wrap the result in an `F[_]`.
+Having `F[G[A]]`, we want to flip the wrappers, receiving `G[F[A]]`. That's exactly what `.sequence` does.
+
+For instance, when our `F[_]` is a `List`, `G[_]` is an `Option`, and `A` is an `Int`:
+
+```scala
+import cats.implicits._
+
+val foo = List(Some(1))
+println(foo.sequence) // Some(List(1))
+val bar = List(None)
+println(bar.sequence) // None
+```
+
+![.sequence](sequence.png){: w="500"}
+_.sequence applied to a List[Option[Int]]_
+
+Note that this conversion is not always possible. Let's say we have a `Future` and a `List` of `Int`s. We can sequence
+the operations one way:
+
+```scala
+List(Future(1), Future(2), Future(3)).sequence // yields a `Future[List[Int]]`
+```
+
+but not the other:
+
+```scala
+Future(List(1, 2, 3)).sequence // compilation error
+```
+
+This makes sense because if the second `.sequence` worked, we would be able, for instance, to tell the size of the list
+before the computation inside the `Future` was finished.
+
+#### .traverse
