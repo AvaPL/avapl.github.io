@@ -147,3 +147,28 @@ println(bar.traverse(_.toIntOption)) // None
 _.traverse applied to a List[String] using a String => Option[Int] function_
 
 ## The challenge
+
+[//]: # (TODO: Check grammar and spelling below)
+
+I surprisingly find myself quite often in situations when I have to execute some asynchronous operation on every element
+of some collection. One example are legacy Java libraries that don't execute operations in batches, other might be an
+external API that doesn't expose endpoints for batch edits.
+
+Here is the pattern:
+* I have a collection of elements like `List[Entity]`
+* I also have a function that executes an asynchronous operation using `Entity` (`Entity => Future[Result]`)
+* I want to execute that operation on each `Entity` instance, getting `List[Future[Result]]` or something similar
+* Then, to simplify things, I want to convert it into a `Future[List[Result]]` or even a single `Future[BatchResult]` if
+  I can combine `Result`s somehow
+
+As you see, it perfectly fits the thing that `.traverse` does. Let's implement it then:
+
+[//]: # (TODO: Scastie: https://scastie.scala-lang.org/UCv6lRrDQBufdL7zrCnUdg)
+
+### Standard library to the rescue
+
+[//]: # (TODO: Add a note about Future.sequence too)
+
+### Would IO help?
+
+[//]: # (TODO: Add a note about the result ordering for both Future and IO)
