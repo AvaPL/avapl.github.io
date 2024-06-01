@@ -148,22 +148,104 @@ _.traverse applied to a List[String] using a String => Option[Int] function_
 
 ## The challenge
 
-[//]: # (TODO: Check grammar and spelling below)
-
-I surprisingly find myself quite often in situations when I have to execute some asynchronous operation on every element
-of some collection. One example are legacy Java libraries that don't execute operations in batches, other might be an
-external API that doesn't expose endpoints for batch edits.
+I surprisingly find myself quite often in situations where I have to execute some asynchronous operation on every
+element of a collection. One example is legacy Java libraries that don't execute operations in batches; another might be
+an external API that doesn't expose endpoints for batch edits.
 
 Here is the pattern:
-* I have a collection of elements like `List[Entity]`
-* I also have a function that executes an asynchronous operation using `Entity` (`Entity => Future[Result]`)
-* I want to execute that operation on each `Entity` instance, getting `List[Future[Result]]` or something similar
+
+* I have a collection of elements like `List[Entity]`.
+* I also have a function that executes an asynchronous operation using `Entity` (`Entity => Future[Result]`).
+* I want to execute that operation on each `Entity` instance, getting `List[Future[Result]]` or something similar.
 * Then, to simplify things, I want to convert it into a `Future[List[Result]]` or even a single `Future[BatchResult]` if
-  I can combine `Result`s somehow
+  I can combine `Result`s somehow.
 
-As you see, it perfectly fits the thing that `.traverse` does. Let's implement it then:
+As you see, this perfectly fits what `.traverse` does. Let's implement it then:
 
-[//]: # (TODO: Scastie: https://scastie.scala-lang.org/UCv6lRrDQBufdL7zrCnUdg)
+```scala
+type Entity = String
+type Result = String
+
+val entities = List("humongous", "blue", "fluffy", "monster") // 1
+
+def heavyComputation(entity: Entity): Future[Result] = // 2
+  Future {
+    println(s"Converting [$entity]...")
+    val result = entity.toUpperCase
+    Thread.sleep(100 * entity.size) // Pretend it's really heavy
+    println(s"Converted [$entity] into [$result]")
+    result
+  }
+
+def runCatsTraverse() = {
+  println("\ncats .traverse(...)")
+  val results = entities.traverse(heavyComputation) // 3
+  println(s"results = ${Await.result(results, 15.seconds)}")
+}
+```
+
+> Please forgive me for all the side effects and impurity of the code in the examples. I wanted to keep the examples as
+> simple as possible to reduce the noise irrelevant to the actual problem.
+{: .prompt-info }
+
+In the snippet above, we have a list of entities (1) and a simulated heavy computation (2). Now, for we traverse each
+element in the list, getting a list of results (3). 
+
+Speaking in terms of types, we have a `List[Entity]` (1) and a function `Entity => Future[Result]` (2) that we use for 
+traversal to ultimately receive `Future[List[Result]]` (3).
+
+Great! Let's run it. Here is an example output:
+
+```
+cats .traverse(...)
+Converting [humongous]...
+Converted [humongous] into [HUMONGOUS]
+Converting [blue]...
+Converted [blue] into [BLUE]
+Converting [fluffy]...
+Converted [fluffy] into [FLUFFY]
+Converting [monster]...
+Converted [monster] into [MONSTER]
+results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
+```
+
+It works well and the result is correct, but the order of operations is counterintuitive. Because we are using
+`Future`s, we expect that we'll make use of the CPU and run the heavy computations in parallel. This didn't happen here.
+Instead, each operation was run sequentially.
+
+Before explaining why, let's take one more step. Remember this?
+> Moreover, `.traverse` can be implemented via `.sequence`. `.traverse(f)` is the same thing as `.map(f).sequence`.
+
+Let's use this property. Here's the modified code:
+
+```scala
+def runCatsMapSequence() = {
+  println("\ncats .map(...).sequence")
+  val results = entities.map(heavyComputation).sequence
+  println(s"results = ${Await.result(results, 15.seconds)}")
+}
+```
+
+Running it should yield the same result, shouldn't it? Well, here's the kicker:
+
+```
+cats .map(...).sequence
+Converting [humongous]...
+Converting [blue]...
+Converting [fluffy]...
+Converting [monster]...
+Converted [blue] into [BLUE]
+Converted [fluffy] into [FLUFFY]
+Converted [monster] into [MONSTER]
+Converted [humongous] into [HUMONGOUS]
+results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
+```
+
+It turns out that this time the computations were run in parallel.
+
+### Where's the catch?
+
+[//]: # (TODO: Scastie: https://scastie.scala-lang.org/OfOGCwtERO6MvI0dnhleRg)
 
 ### Standard library to the rescue
 
@@ -172,3 +254,5 @@ As you see, it perfectly fits the thing that `.traverse` does. Let's implement i
 ### Would IO help?
 
 [//]: # (TODO: Add a note about the result ordering for both Future and IO)
+
+[//]: # (TODO: Describe that we cannot use parTraverse nor parSequence on a Future)
