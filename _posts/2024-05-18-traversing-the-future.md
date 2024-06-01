@@ -178,7 +178,7 @@ def heavyComputation(entity: Entity): Future[Result] = // 2
   }
 
 def runCatsTraverse() = {
-  println("\ncats .traverse(...)")
+  println("\ncats .traverse(f)")
   val results = entities.traverse(heavyComputation) // 3
   println(s"results = ${Await.result(results, 15.seconds)}")
 }
@@ -189,15 +189,18 @@ def runCatsTraverse() = {
 {: .prompt-info }
 
 In the snippet above, we have a list of entities (1) and a simulated heavy computation (2). Now, for we traverse each
-element in the list, getting a list of results (3). 
+element in the list, getting a list of results (3).
 
-Speaking in terms of types, we have a `List[Entity]` (1) and a function `Entity => Future[Result]` (2) that we use for 
+Speaking in terms of types, we have a `List[Entity]` (1) and a function `Entity => Future[Result]` (2) that we use for
 traversal to ultimately receive `Future[List[Result]]` (3).
+
+We are passing the list `[humongous, blue, fluffy, monster]` as the input and expect a parallel conversion to uppercase,
+resulting in `[HUMONGOUS, BLUE, FLUFFY, MONSTER]` as the output.
 
 Great! Let's run it. Here is an example output:
 
 ```
-cats .traverse(...)
+cats .traverse(f)
 Converting [humongous]...
 Converted [humongous] into [HUMONGOUS]
 Converting [blue]...
@@ -220,7 +223,7 @@ Let's use this property. Here's the modified code:
 
 ```scala
 def runCatsMapSequence() = {
-  println("\ncats .map(...).sequence")
+  println("\ncats .map(f).sequence")
   val results = entities.map(heavyComputation).sequence
   println(s"results = ${Await.result(results, 15.seconds)}")
 }
@@ -229,7 +232,7 @@ def runCatsMapSequence() = {
 Running it should yield the same result, shouldn't it? Well, here's the kicker:
 
 ```
-cats .map(...).sequence
+cats .map(f).sequence
 Converting [humongous]...
 Converting [blue]...
 Converting [fluffy]...
@@ -245,7 +248,33 @@ It turns out that this time the computations were run in parallel.
 
 ### Where's the catch?
 
-[//]: # (TODO: Scastie: https://scastie.scala-lang.org/OfOGCwtERO6MvI0dnhleRg)
+There are 2 main contributors to the behavior we observe above:
+
+1. `.traverse` doesn't guarantee the execution order.
+2. The `Future` is evaluated eagerly.
+
+Because of the first point, we cannot be sure when the `Future`s will be executed. They could be run in parallel, but
+unfortunately for us, they were evaluated sequentially.
+
+Due to the second point, we observe parallel execution when `.traverse` is replaced with `.map(f).sequence`.
+As we see in the outputs, cats' `.traverse` isn't implemented as `.map(f).sequence` because the outputs of the snippets
+above are different.
+
+> In fact, the behavior of `.traverse` for `Future`s was
+> once [changed in a minor cats version](https://github.com/typelevel/cats/issues/4176). After that, `Future` usages
+> with cats [were deprecated](https://github.com/typelevel/cats/pull/4230) due to being error-prone, but there are no
+> plans for removal.
+{: .prompt-info }
+
+Now, we learned the hard way why using `Future`s with Cats is generally discouraged. The result was unexpected and
+nothing warned us about it (well, except for the documentation in the source code that we didn't read). What’s more, we
+discovered it only because we went the extra mile to investigate it in depth. Since the outputs are the same, this issue
+could have been running in our codebase for months or even years unnoticed (make sure to check your codebase!),
+degrading the performance of our system.
+
+The question is: _can we do better?_
+
+[//]: # (TODO: Scastie: https://scastie.scala-lang.org/pnwqiSLsTxC1I4Xg2YuYvg)
 
 ### Standard library to the rescue
 
