@@ -310,13 +310,150 @@ price to pay for optimized code.
 
 ### Would IO help?
 
-Okay, after we proved that using standard library in this case is more predictable, you might be wondering whether using
-`IO` instead would be better. I would say that the most valuable `IO` property in this case is its predictable behavior.
+Okay, after we proved that using standard library in this case is more intuitive, you might be wondering whether using
+Cats Effect's `IO` instead would be better. I would say that the most valuable property of `IO` in this case is its
+predictable behavior.
 
+Here's the `IO` version of our `heavyComputation` (pure this time!):
 
+```scala
+def heavyComputationIO(entity: Entity): IO[Result] =
+  for {
+    _ <- IO(println(s"Converting [$entity]..."))
+    result = entity.toUpperCase
+    _ <- IO.sleep(100.millis * entity.size) // Pretend it's really heavy
+    _ <- IO(println(s"Converted [$entity] into [$result]"))
+  } yield result
+```
+
+It's very similar to what we wrote previously, but uses `IO` to enclose `println` calls and `IO.sleep` instead
+of `Thread.sleep`.
+
+Now, if we run it with `.traverse`:
+
+```scala
+def runCatsIOTraverse() = {
+  println("\nIO cats .traverse(f)")
+  val results = entities.traverse(heavyComputationIO)
+  println(s"results = ${results.unsafeRunSync()}")
+}
+```
+
+We get...
+
+```
+IO cats .traverse(f)
+Converting [humongous]...
+Converted [humongous] into [HUMONGOUS]
+Converting [blue]...
+Converted [blue] into [BLUE]
+Converting [fluffy]...
+Converted [fluffy] into [FLUFFY]
+Converting [monster]...
+Converted [monster] into [MONSTER]
+results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
+```
+
+...a sequential execution. So nothing has changed compared to the use with `Future`, has it? Moreover, if we dig deeper,
+we'll find that if `.traverse` is replaced with `.map(f).sequence`, it also won't run in parallel!
+
+```scala
+def runCatsIOMapSequence() = {
+  println("\nIO cats .map(f).sequence")
+  val results = entities.map(heavyComputationIO).sequence
+  println(s"results = ${results.unsafeRunSync()}")
+}
+```
+
+```
+IO cats .map(f).sequence
+Converting [humongous]...
+Converted [humongous] into [HUMONGOUS]
+Converting [blue]...
+Converted [blue] into [BLUE]
+Converting [fluffy]...
+Converted [fluffy] into [FLUFFY]
+Converting [monster]...
+Converted [monster] into [MONSTER]
+results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
+```
+
+Is the sequential execution the predictability that I mentioned? Not really. With `IO`, we have to tell the runtime that
+we want to perform the computation in parallel. Instead of using `.traverse` or `.sequence`, we have to
+use `.parTraverse` or `.parSequence`.
+
+Here is our example with `.parTraverse`:
+
+```scala
+def runCatsIOParTraverse() = {
+  println("\nIO cats .parTraverse(f)")
+  val results = entities.parTraverse(heavyComputationIO)
+  println(s"results = ${results.unsafeRunSync()}")
+}
+```
+
+If we check the output, it finally runs in parallel:
+
+```
+IO cats .parTraverse(f)
+Converting [humongous]...
+Converting [blue]...
+Converting [fluffy]...
+Converting [monster]...
+Converted [blue] into [BLUE]
+Converted [fluffy] into [FLUFFY]
+Converted [monster] into [MONSTER]
+Converted [humongous] into [HUMONGOUS]
+results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
+```
+
+To add more to it, we even have `.parTraverseN` which allows us to limit the maximum number of parallel computations. 
+
+> Finer control over the execution of the `Future.traverse` is also possible but requires a bit more effort. It could be
+> achieved by configuring the implicit `ExecutionContext` being used.
+{: .prompt-tip }
+
+In the snippet below, the maximum is set to 2:
+
+```scala
+def runCatsIOParTraverseN() = {
+  println("\nIO cats .parTraverseN(2)(f)")
+  val results = entities.parTraverseN(2)(heavyComputationIO)
+  println(s"results = ${results.unsafeRunSync()}")
+}
+```
+
+```
+IO cats .parTraverseN(2)(f)
+Converting [fluffy]...
+Converting [monster]...
+Converted [fluffy] into [FLUFFY]
+Converting [humongous]...
+Converted [monster] into [MONSTER]
+Converting [blue]...
+Converted [blue] into [BLUE]
+Converted [humongous] into [HUMONGOUS]
+results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
+```
+
+As you see in the output above:
+
+1. Computations for `fluffy` and `monster` are started.
+2. Computation for `fluffy` completes, allowing the computation for `humongous` to start.
+3. Computation for `monster` completes, allowing the computation for `blue` to start.
+4. Computations for `blue` and `monster` complete.
+
+We could achieve similar results with `.parSequenceN`.
+
+The fact that `IO` requires being explicit and gives us tools for finer control makes it superior. However, not every
+use case requires `IO`, and not every application contains Cats Effect. It's up to you to decide which one fits your use
+case. Remember to be pragmatic 😉
+
+> You might ask why we cannot just use `.parTraverse` or `.parTraverseN` together with a `Future`. It turns out
+> that `Future` doesn't contain an instance for [Parallel](https://typelevel.org/cats/typeclasses/parallel.html)
+> typeclass defined, which is required to use the `.par...` methods.
+{: .prompt-info }
+
+## Summary
 
 [//]: # (TODO: Scastie: https://scastie.scala-lang.org/rh5P5SlFRpiEVA5hWQJirw)
-
-[//]: # (TODO: Add a note about the result ordering for both Future and IO)
-
-[//]: # (TODO: Describe that we cannot use parTraverse nor parSequence on a Future)
