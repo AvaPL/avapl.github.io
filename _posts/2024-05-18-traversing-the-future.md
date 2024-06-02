@@ -407,7 +407,7 @@ Converted [humongous] into [HUMONGOUS]
 results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
 ```
 
-To add more to it, we even have `.parTraverseN` which allows us to limit the maximum number of parallel computations. 
+To add more to it, we even have `.parTraverseN` which allows us to limit the maximum number of parallel computations.
 
 > Finer control over the execution of the `Future.traverse` is also possible but requires a bit more effort. It could be
 > achieved by configuring the implicit `ExecutionContext` being used.
@@ -456,4 +456,12 @@ case. Remember to be pragmatic 😉
 
 ## Summary
 
-[//]: # (TODO: Scastie: https://scastie.scala-lang.org/rh5P5SlFRpiEVA5hWQJirw)
+Well, it turned out to be quite a lengthy exploration for what seemed like a simple concept. Hopefully, now you see why
+blending impure code with cats might lead to unexpected outcomes. But with careful attention, it's possible to navigate
+these challenges. After all, there's no functional police waiting to catch us in the act.
+
+In my view, it's crucial to remember that the primary goal of our code is to solve problems and deliver value. Being
+pragmatic allows us to strike a balance between adhering to best practices and delivering features quickly. It's evident
+that managing functional overhead can be complex, which might explain the trend toward direct style.
+
+You can find the code from the snippets on Scastie: <https://scastie.scala-lang.org/rWmONXkjR32iaS7Bd3YKlw>
