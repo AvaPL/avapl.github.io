@@ -256,9 +256,10 @@ There are 2 main contributors to the behavior we observe above:
 Because of the first point, we cannot be sure when the `Future`s will be executed. They could be run in parallel, but
 unfortunately for us, they were evaluated sequentially.
 
-Due to the second point, we observe parallel execution when `.traverse` is replaced with `.map(f).sequence`.
-As we see in the outputs, cats' `.traverse` isn't implemented as `.map(f).sequence` because the outputs of the snippets
-above are different.
+Due to the second point, we observe parallel execution when `.traverse` is replaced with `.map(f).sequence`. Right
+after `.map(f)` is applied, the `Future`s are started. Thus, `.sequence` operates on already started computations and
+just gathers the results. As we see in the outputs, cats' `.traverse` isn't implemented as `.map(f).sequence` because
+the outputs of the snippets above are different.
 
 > In fact, the behavior of `.traverse` for `Future`s was
 > once [changed in a minor cats version](https://github.com/typelevel/cats/issues/4176). After that, `Future` usages
@@ -305,8 +306,8 @@ results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
 The computations are run in parallel, that's exactly what we wanted!
 
 What's more, `Future` also has a `.sequence` method. In this case, `Future.traverse(collection)(f)` is the same
-as `Future.sequence(collection.map(f))`. Of course, we don't get the extension methods out of the box, but it's a small
-price to pay for optimized code.
+as `Future.sequence(collection.map(f))`. Of course, the syntax is not that tidy, but it's a minor inconvenience
+considering the optimized code it provides. We can always write the extension methods ourselves if needed.
 
 ### Would IO help?
 
