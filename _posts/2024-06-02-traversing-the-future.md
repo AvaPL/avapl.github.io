@@ -1,9 +1,9 @@
 ---
 title: "Traversing the Future"
-date: 2024-05-18 12:00:00 +0000
+date: 2024-06-02 12:00:00 +0000
 categories: [ Blog ]
 tags: [ scala, functional programming, cats ]     # TAG names should always be lowercase
-img_path: /assets/img/2024-05-18-traversing-the-future/
+img_path: /assets/img/2024-06-02-traversing-the-future/
 ---
 
 Although the community seems to be turning toward [direct style Scala](https://www.youtube.com/watch?v=0Fm0y4K4YO8)
