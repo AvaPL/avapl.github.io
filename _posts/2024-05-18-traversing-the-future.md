@@ -274,13 +274,48 @@ degrading the performance of our system.
 
 The question is: _can we do better?_
 
-[//]: # (TODO: Scastie: https://scastie.scala-lang.org/pnwqiSLsTxC1I4Xg2YuYvg)
-
 ### Standard library to the rescue
 
-[//]: # (TODO: Add a note about Future.sequence too)
+It turns out that we don't really have to use cats - Scala's standard library can help us here. `Future` companion
+object already contains `.traverse` method that we can utilize. Let's slightly modify our code:
+
+```scala
+def runStdLibTraverse() = {
+  println("\nstandard library .traverse(f)")
+  val results = Future.traverse(entities)(heavyComputation)
+  println(s"results = ${Await.result(results, 15.seconds)}")
+}
+```
+
+Here is the output:
+
+```
+standard library .traverse(f)
+Converting [humongous]...
+Converting [blue]...
+Converting [fluffy]...
+Converting [monster]...
+Converted [blue] into [BLUE]
+Converted [fluffy] into [FLUFFY]
+Converted [monster] into [MONSTER]
+Converted [humongous] into [HUMONGOUS]
+results = List(HUMONGOUS, BLUE, FLUFFY, MONSTER)
+```
+
+The computations are run in parallel, that's exactly what we wanted!
+
+What's more, `Future` also has a `.sequence` method. In this case, `Future.traverse(collection)(f)` is the same
+as `Future.sequence(collection.map(f))`. Of course, we don't get the extension methods out of the box, but it's a small
+price to pay for optimized code.
 
 ### Would IO help?
+
+Okay, after we proved that using standard library in this case is more predictable, you might be wondering whether using
+`IO` instead would be better. I would say that the most valuable `IO` property in this case is its predictable behavior.
+
+
+
+[//]: # (TODO: Scastie: https://scastie.scala-lang.org/rh5P5SlFRpiEVA5hWQJirw)
 
 [//]: # (TODO: Add a note about the result ordering for both Future and IO)
 
