@@ -261,10 +261,14 @@ after `.map(f)` is applied, the `Future`s are started. Thus, `.sequence` operate
 just gathers the results. As we see in the outputs, cats' `.traverse` isn't implemented as `.map(f).sequence` because
 the outputs of the snippets above are different.
 
-> In fact, the behavior of `.traverse` for `Future`s was
-> once [changed in a minor cats version](https://github.com/typelevel/cats/issues/4176). After that, `Future` usages
+
+> The code above was written using cats 2.10. The behavior of `.traverse` for `Future`s was
+> first [changed in a minor cats version](https://github.com/typelevel/cats/issues/4176). After that, `Future` usages
 > with cats [were deprecated](https://github.com/typelevel/cats/pull/4230) due to being error-prone, but there are no
 > plans for removal.
+> 
+> In 2.11 the behavior [has changed again](https://github.com/typelevel/cats/issues/4617). This might happen in the 
+> future as well.
 {: .prompt-info }
 
 Now, we learned the hard way why using `Future`s with Cats is generally discouraged. The result was unexpected and
