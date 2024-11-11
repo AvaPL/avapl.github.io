@@ -3,7 +3,7 @@ title: "Cleo algorithm: How I saved money using Scala"
 date: 2024-03-30 12:00:00 +0000
 categories: [ Blog ]
 tags: [ scala, algorithms ]     # TAG names should always be lowercase
-img_path: /assets/img/2024-03-30-cleo-algorithm-how-i-saved-money-using-scala/
+media_subpath: /assets/img/2024-03-30-cleo-algorithm-how-i-saved-money-using-scala/
 ---
 
 We often perceive programming as ~~a way to earn money~~ a hobby, yet seldom consider its potential for saving money. In

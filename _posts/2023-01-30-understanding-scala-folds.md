@@ -3,7 +3,7 @@ title: Understanding Scala folds
 date: 2023-01-30 12:00:00 +0000
 categories: [Blog]
 tags: [scala, functional programming]     # TAG names should always be lowercase
-img_path: /assets/img/2023-01-30-understanding-scala-folds/
+media_subpath: /assets/img/2023-01-30-understanding-scala-folds/
 ---
 
 One of the first things that you encounter in the functional

@@ -3,7 +3,7 @@ title: "OfficeBuddy — a small-scale DDD app"
 date: 2024-10-27 12:00:00 +0000
 categories: [ Blog ]
 tags: [ scala, functional programming, cats, ddd, domain-driven design, projects ]     # TAG names should always be lowercase
-img_path: /assets/img/2024-10-27-officebuddy-a-small-scale-ddd-app/
+media_subpath: /assets/img/2024-10-27-officebuddy-a-small-scale-ddd-app/
 ---
 
 Today, I published [OfficeBuddy](https://github.com/AvaPL/OfficeBuddy) — my pet project which I've been working on for

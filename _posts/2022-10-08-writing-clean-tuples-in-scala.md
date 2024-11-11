@@ -3,7 +3,7 @@ title: Writing clean tuples in Scala
 date: 2022-10-08 12:00:00 +0000
 categories: [Blog]
 tags: [scala, clean code, tips]     # TAG names should always be lowercase
-img_path: /assets/img/2022-10-08-writing-clean-tuples-in-scala/
+media_subpath: /assets/img/2022-10-08-writing-clean-tuples-in-scala/
 ---
 
 How many times have you wondered what is hidden under `._1` in a line of code?
