@@ -3,7 +3,7 @@ title: Adding transactions to Scala repositories
 date: 2022-11-11 12:00:00 +0000
 categories: [Blog]
 tags: [scala, functional programming, cats, sql, domain-driven design, ddd, tips]     # TAG names should always be lowercase
-img_path: /assets/img/2022-11-11-adding-transactions-to-scala-repositories/
+media_subpath: /assets/img/2022-11-11-adding-transactions-to-scala-repositories/
 ---
 
 Not that long ago, I had to review a piece of code that worked like this:
