@@ -2,7 +2,7 @@
 # the default layout is 'page'
 icon: fas fa-info-circle
 order: 4
-img_path: /assets/img/about/
+media_subpath: /assets/img/about/
 ---
 
 ![Fluffy monster](fluffy_monster.png){: w="384" h="384" }
