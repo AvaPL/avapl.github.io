@@ -15,7 +15,7 @@ Keep in mind, this isn’t an exhaustive list of all available options. I’m as
 familiar with [PureConfig](https://pureconfig.github.io) and [Typesafe Config](https://github.com/lightbend/config).
 
 [//]: # (TODO: Add image)
-![Fluffy monsters configuring](fluffy_monsters_configuring.jpg){: w="400"}
+![Fluffy monsters configuring](fluffy_monsters_configuring.jpg){: w="400" }
 
 ## Configuration hierarchy
 
@@ -38,7 +38,7 @@ Here’s a simple configuration that we’ll use throughout this post:
 
 [//]: # (@formatter:off)
 
-```scala 3
+```scala
 case class FluffyMonster(
   name: String,
   pseudonyms: List[String],
@@ -55,8 +55,7 @@ case class FluffyPet(
 
 [//]: # (@formatter:on)
 
-[//]: # (TODO: Add image)
-![Fluffy monster model](fluffy_monster_model.jpg){: w="400" .w-50 .right }
+![Fluffy monster model](fluffy_monster_model.jpg){: w="310" .w-30 .right }
 
 This setup includes several types of configuration values:
 
