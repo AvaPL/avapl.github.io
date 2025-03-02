@@ -14,7 +14,6 @@ approaches that I hadn’t used before.
 Keep in mind, this isn’t an exhaustive list of all available options. I’m assuming you’re already at least somewhat
 familiar with [PureConfig](https://pureconfig.github.io) and [Typesafe Config](https://github.com/lightbend/config).
 
-[//]: # (TODO: Add image)
 ![Fluffy monsters configuring](fluffy_monsters_configuring.jpg){: w="400" }
 
 ## Configuration hierarchy
