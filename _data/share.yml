@@ -6,6 +6,10 @@ platforms:
     icon: "fa-brands fa-square-x-twitter"
     link: "https://twitter.com/intent/tweet?text=TITLE&url=URL"
 
+  - type: Bluesky
+    icon: "fa-brands fa-bluesky"
+    link: "https://bsky.app/intent/compose?text=TITLE%20URL"
+
   - type: Mastodon
     icon: "fa-brands fa-mastodon"
     # See: https://github.com/justinribeiro/share-to-mastodon#properties
@@ -36,10 +40,6 @@ platforms:
   # - type: Weibo
   #   icon: "fab fa-weibo"
   #   link: "https://service.weibo.com/share/share.php?title=TITLE&url=URL"
-  #
-  # - type: Bluesky
-  #   icon: "fa-brands fa-bluesky"
-  #   link: "https://bsky.app/intent/compose?text=TITLE%20URL"
   #
   # - type: Threads
   #   icon: "fa-brands fa-square-threads"
