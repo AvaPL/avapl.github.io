@@ -161,7 +161,7 @@ case class RefinedUser(username: String :| MinLength[3], age: Int :| Positive) {
 
 object RefinedUser {
   def create(username: String, age: Int): RefinedUser = // runtime validation
-    RefinedUser(username.refineUnsafe[MinLength[3]], age.refineUnsafe[Positive])
+    RefinedUser(username.refineUnsafe, age.refineUnsafe)
 }
 
 case class ClassicUser private (username: String, age: Int) {
