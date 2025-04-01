@@ -180,15 +180,76 @@ object ClassicUser {
 
 [//]: # (@formatter:on)
 
+> Note: I'm using exceptions just for the sake of simplicity. In further sections, I'll list some alternatives that are
+> native to functional world.
+{: .prompt-info }
+
 In my opinion, at runtime, refined types are just a glorified constructors. They don't provide any additional operations
 that can be performed on the data. They just validate the instance when it's created. Even if the validation passes, we
 still have to write the logic to manipulate the data, even though we assume it has a well-defined structure. What is
 more, we still have to test out domain logic as the refined type doesn't prevent us from performing invalid operations
 as in `secondInitial` example above.
 
+We can also see the first inflexibility of refined types validation. In case of `ClassicUser`, we could throw any error
+type with any message. For instance, we could throw a custom `EmptyStringError` when the string is empty,
+and `StringTooShortError` when it's too short. With refined types, we always get an `IllegalArgumentException` with a
+predefined message that the predicate is not satisfied.
+
 ### Fields depending on other fields
 
-[//]: # (TODO: Example of a computer/car configuration)
+Continuing the topic of validation, usually an aggregate in domain driven design has to fulfill some invariants. That
+doesn't always mean that only the fields have a valid structure, but that the whole object is valid in domain terms.
+
+Let's use a simple example of a domain in which the business sells laptops. The constraints are:
+
+- the laptop has 8 or 10 core CPU,
+- the laptop has 16, 24 or 32 GB of RAM,
+- the laptop has 512 GB or 1 TB SSD,
+- when the laptop has 10 core CPU, it must have at least 24 GB of RAM.
+
+We can easily represent the first 3 constraints even without refined types, by using Scala union types:
+
+[//]: # (@formatter:off)
+
+```scala
+case class LaptopConfiguration(
+  cpuCores: 8 | 10,
+  ramGB: 16 | 24 | 32,
+  ssdGB: 512 | 1024
+)
+```
+
+[//]: # (@formatter:on)
+
+However, the last constraint is not possible to represent on the type level in simple way. I assume that there is some
+fancy Scala magic that could be used to represent it, but I don't think it's worth the effort and further confusion. If
+we had a simple constructor, the validation is very straightforward:
+
+[//]: # (@formatter:off)
+
+```scala
+case class LaptopConfiguration private (
+  cpuCores: Int,
+  ramGB: Int,
+  ssdGB: Int
+)
+
+object LaptopConfiguration{
+  def create(cpuCores: Int, ramGB: Int, ssdGB: Int): LaptopConfiguration = {
+    if (!Set(8, 10).contains(cpuCores)) throw new IllegalArgumentException(s"Invalid CPU cores: $cpuCores")
+    if (!Set(16, 24, 32).contains(ramGB)) throw new IllegalArgumentException(s"Invalid RAM: $ramGB")
+    if (!Set(512, 1024).contains(ssdGB)) throw new IllegalArgumentException(s"Invalid SSD: $ssdGB")
+    if (cpuCores == 10 && ramGB < 24) throw new IllegalArgumentException("10 core CPU requires at least 24 GB of RAM")
+    LaptopConfiguration(cpuCores, ramGB, ssdGB)
+  }
+}
+```
+
+[//]: # (@formatter:on)
+
+Again, we get full flexibility of the validation. We can throw any exception we want with any message. With refined
+types, we'd have to apply the validation of the last constraint in constructor anyway. This is also true for any other
+validation of our aggregate after we apply some domain logic on it.
 
 ### Backward/forward compatibility of models
 
