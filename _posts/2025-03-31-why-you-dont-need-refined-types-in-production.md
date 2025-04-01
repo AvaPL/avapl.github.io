@@ -251,6 +251,13 @@ Again, we get full flexibility of the validation. We can throw any exception we 
 types, we'd have to apply the validation of the last constraint in constructor anyway. This is also true for any other
 validation of our aggregate after we apply some domain logic on it.
 
+> Some of you might suggest introducing a separate type for each possible configuration, that'd also prevent us from
+> creating an invalid state. While for some domains it's possible, for others it may be
+> impractical. [Here](https://virtuslab.com/success-stories/car-configurator-modernization/) is an example of a domain
+> in which validation of the whole configuration was one of the main concerns because the number of parameters was so
+> huge.
+{: .prompt-info }
+
 ### Backward/forward compatibility of models
 
 ### Compatibility with libraries
