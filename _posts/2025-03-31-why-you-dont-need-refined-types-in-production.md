@@ -278,13 +278,13 @@ Hipothetically, let's say we have the following sequence of business requirement
 Point 1 is easy to implement. We can just introduce a refined type with predicate `FixedLength[4]`:
 
 ```scala
-type Identifier1 = String :| FixedLength[4]
+type IdentifierV1 = String :| FixedLength[4]
 ```
 
 Let's now try to implement point 2. We can use `MinLength[4]` and `MaxLength[5]` predicates:
 
 ```scala
-type Identifier2 = String :| (MinLength[4] & MaxLength[5])
+type IdentifierV2 = String :| (MinLength[4] & MaxLength[5])
 ```
 
 So far so good. Remember that we persisted `Identifier1` values in the database, and we have to maintain backward
@@ -292,8 +292,8 @@ compatibility. Because fixed length of 4 from `Identifier1` fulfils the requirem
 the change is backward-compatible. We can use a value of type `Identifier1` as a value of type `Identifier2`:
 
 ```scala
-val myIdentifierV1: Identifier1 = "abcd"
-val myIdentifierV2: Identifier2 = myIdentifierV1
+val myIdentifierV1: IdentifierV1 = "abcd"
+val myIdentifierV2: IdentifierV2 = myIdentifierV1
 ```
 
 We can run it and get... a compilation error.
@@ -307,13 +307,13 @@ We could try to fix it, but I can't be bothered ¯\_(ツ)_/¯ Why? As mentioned 
 validation anyway. If we use one of the `refine...` methods as suggested in the error, it'll work just fine:
 
 ```scala
-val myIdentifierV2: Identifier2 = myIdentifierV1.refineUnsafe // works
+val myIdentifierV2: IdentifierV2 = myIdentifierV1.refineUnsafe // works
 ```
 
 Okay, now to the point 3. We can just use `FixedLength[5]` predicate:
 
 ```scala
-type Identifier3 = String :| FixedLength[5]
+type IdentifierV3 = String :| FixedLength[5]
 ```
 
 This change is not backward-compatible, because previously we allowed identifiers that were 4 characters long. Luckily,
@@ -321,8 +321,8 @@ the requirement describes the way in which we can transform the old identifiers 
 with `0`. But how are we supposed to do that? Well, again, with a transformation on the runtime:
 
 ```scala
-val myIdentifierV2: Identifier2 = "abcd"
-val myIdentifierV3: Identifier3 = myIdentifierV2.padTo(5, '0').refineUnsafe
+val myIdentifierV2: IdentifierV2 = "abcd"
+val myIdentifierV3: IdentifierV3 = myIdentifierV2.padTo(5, '0').refineUnsafe
 ```
 
 Refined types again don't help us with the transformation. In this case, they don't differ from a regular transformation
