@@ -330,7 +330,8 @@ that we'd apply manually between the models. We'd also have to write a few tests
 works as expected. It's another proof that runtime validation is intrinsic.
 
 I could further describe forward compatibility or transitive compatibilities, but I think the point is clear. Other
-types fall into the same category, in which we are required to remember about the types we used in the past.
+kinds of compatibility fall into the same category, in which we are required to remember about the types we used in the
+past.
 
 ### Compatibility with libraries
 
