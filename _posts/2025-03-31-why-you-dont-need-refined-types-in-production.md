@@ -260,6 +260,78 @@ validation of our aggregate after we apply some domain logic on it.
 
 ### Backward/forward compatibility of models
 
+In the world of agile development, we often have to deal with backward and forward compatibility of our models. The
+requirements change, the data structure changes, and we have to adapt our code to it. This is especially true for
+database models (which require at least backward compatibility) and API models (which often requires forward
+compatibility).
+
+Let's focus on the backward compatibility. When we change the structure of our models, we have to make sure that
+the old data can still be read by the new code. How to do that with refined types? It actually depends on the type of
+the change we're introducing.
+
+Hipothetically, let's say we have the following sequence of business requirements:
+
+1. Introduce an identifier that is contains exactly 4 characters that will be persisted in a database.
+2. Allow identifiers that are 4 or 5 characters long.
+3. Identifiers now have to be 5 characters long. If the identifier is 4 characters long, it should be padded with `0`.
+
+Point 1 is easy to implement. We can just introduce a refined type with predicate `FixedLength[4]`:
+
+```scala
+type Identifier1 = String :| FixedLength[4]
+```
+
+Let's now try to implement point 2. We can use `MinLength[4]` and `MaxLength[5]` predicates:
+
+```scala
+type Identifier2 = String :| (MinLength[4] & MaxLength[5])
+```
+
+So far so good. Remember that we persisted `Identifier1` values in the database, and we have to maintain backward
+compatibility. Because fixed length of 4 from `Identifier1` fulfils the requirements of `Identifier2`, we can say that
+the change is backward-compatible. We can use a value of type `Identifier1` as a value of type `Identifier2`:
+
+```scala
+val myIdentifierV1: Identifier1 = "abcd"
+val myIdentifierV2: Identifier2 = myIdentifierV1
+```
+
+We can run it and get... a compilation error.
+
+> Cannot refine value at compile-time because the predicate cannot be evaluated.<br>
+> This is likely because the condition or the input value isn't fully inlined.
+>
+> To test a constraint at runtime, use one of the `refine...` extension methods.
+
+We could try to fix it, but I can't be bothered ¯\_(ツ)_/¯ Why? As mentioned above, we mostly care about the runtime
+validation anyway. If we use one of the `refine...` methods as suggested in the error, it'll work just fine:
+
+```scala
+val myIdentifierV2: Identifier2 = myIdentifierV1.refineUnsafe // works
+```
+
+Okay, now to the point 3. We can just use `FixedLength[5]` predicate:
+
+```scala
+type Identifier3 = String :| FixedLength[5]
+```
+
+This change is not backward-compatible, because previously we allowed identifiers that were 4 characters long. Luckily,
+the requirement describes the way in which we can transform the old identifiers to the new ones. We can just pad them
+with `0`. But how are we supposed to do that? Well, again, with a transformation on the runtime:
+
+```scala
+val myIdentifierV2: Identifier2 = "abcd"
+val myIdentifierV3: Identifier3 = myIdentifierV2.padTo(5, '0').refineUnsafe
+```
+
+Refined types again don't help us with the transformation. In this case, they don't differ from a regular transformation
+that we'd apply manually between the models. We'd also have to write a few tests to make sure that the transformation
+works as expected. It's another proof that runtime validation is intrinsic.
+
+I could further describe forward compatibility or transitive compatibilities, but I think the point is clear. Other
+types fall into the same category, in which we are required to remember about the types we used in the past.
+
 ### Compatibility with libraries
 
 [//]: # (TODO: Matrix of libraries compatibility with refined types)
