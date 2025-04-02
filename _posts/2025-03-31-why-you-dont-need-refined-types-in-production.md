@@ -171,8 +171,8 @@ case class ClassicUser private (username: String, age: Int) {
 
 object ClassicUser {
   def create(username: String, age: Int): ClassicUser = { // runtime validation
-    if (username.length < 3) throw new IllegalArgumentException("Username must be at least 3 characters long")
-    if (age < 0) throw new IllegalArgumentException("Age must be positive")
+    if (username.length < 3) throw new UsernameTooShortException(username)
+    if (age < 0) throw new NegativeAgeException(age)
     ClassicUser(username, age)
   }
 }
@@ -236,10 +236,10 @@ case class LaptopConfiguration private (
 
 object LaptopConfiguration{
   def create(cpuCores: Int, ramGB: Int, ssdGB: Int): LaptopConfiguration = {
-    if (!Set(8, 10).contains(cpuCores)) throw new IllegalArgumentException(s"Invalid CPU cores: $cpuCores")
-    if (!Set(16, 24, 32).contains(ramGB)) throw new IllegalArgumentException(s"Invalid RAM: $ramGB")
-    if (!Set(512, 1024).contains(ssdGB)) throw new IllegalArgumentException(s"Invalid SSD: $ssdGB")
-    if (cpuCores == 10 && ramGB < 24) throw new IllegalArgumentException("10 core CPU requires at least 24 GB of RAM")
+    if (!Set(8, 10).contains(cpuCores)) throw new InvalidCpuCoresException(cpuCores)
+    if (!Set(16, 24, 32).contains(ramGB)) throw new InvalidRAMException(ramGB)
+    if (!Set(512, 1024).contains(ssdGB)) throw new InvalidSSDException(ssdGB)
+    if (cpuCores == 10 && ramGB < 24) throw new TooLowRamForCPUException(cpuCores, ramGB)
     LaptopConfiguration(cpuCores, ramGB, ssdGB)
   }
 }
@@ -335,9 +335,84 @@ past.
 
 ### Compatibility with libraries
 
-[//]: # (TODO: Matrix of libraries compatibility with refined types)
+Another caveat is the support of libraries. I think it's quite obvious that not every library that we use will have
+support for refined types. For instance, [avro4s supports refined](https://github.com/sksamuel/avro4s#refined-support)
+but [iron doesn't support avro4s](https://github.com/Iltotore/iron/issues/215). Of course, I don't want to say that
+refined types are the culprit here. It's in the nature of many libraries in the ecosystem. However, because we're
+talking about types here, it's quite cumbersome to write all the boilerplate, e.g. Avro codecs, yourself when you have
+lots of models in your domain. You wouldn't have that problem if you used regular types. Again, we care about runtime
+transformations so runtime validation on regular types doesn't differ that much from refined types with bindings for
+other libraries.
 
-[//]: # (TODO: chimney transformations)
+Another aspect worth highlighting are how those bindings for libraries work. Let's look at `iron-circe` integration for
+decoding `RefinedUser` defined above:
+
+[//]: # (@formatter:off)
+
+```scala
+case class RefinedUser(username: String :| MinLength[3], age: Int :| Positive)
+
+object RefinedUser {
+  def fromJson(json: Json): Either[Error, RefinedUser] =
+    decode[RefinedUser](json)
+}
+
+val validUser = RefinedUser.fromJson("""{"username": "John", "age": 21}""")
+val invalidUser = RefinedUser.fromJson("""{"username": "Jo", "age": -100}""")
+```
+
+[//]: # (@formatter:on)
+
+For valid user, we just get a `RefinedUser` instance. For invalid user, we get a `io.circe.DecodingFailure`. Great,
+isn't it? Well, in my opinion, it isn't. `io.circe.DecodingFailure` is a very generic exception. If you wanted to
+introduce error handling based on it, e.g. display custom messages, introduce fallbacks, the only way to discover what
+went wrong is by inspecting the error message. This is not what functional programming is praised for - we love not only
+types in our models, we love types of the exceptions.
+
+What would happen if we implemented it for `ClassicUser`? As you might have guessed, full flexibility:
+
+[//]: # (@formatter:off)
+
+```scala
+case class ClassicUser private (username: String, age: Int)
+
+object ClassicUser {
+  def fromJson(json: String): Either[Error, ClassicUser] =
+    decode[ClassicUser](json).map { user =>
+      if (user.username.length < 3) throw new UsernameTooShortException(user.username)
+      if (user.age < 0) throw new NegativeAgeException(user.age)
+      user
+    }
+}
+
+val validUser = ClassicUser.fromJson("""{"username": "John", "age": 21}""")
+val invalidUser = ClassicUser.fromJson("""{"username": "Jo", "age": -100}""")
+```
+
+[//]: # (@formatter:on)
+
+Of course, for simplicity, I mixed exceptions with an `Either` here. However, even despite that odd mixture, another
+benefit is revealed. We separate the domain exceptions (which we could potentially handle) from errors from `circe`
+decoders (which are probably irrecoverable). Another point for the classic approach.
+
+The last thing about libraries interoperability that I want to mention is `chimney` and `ducktape`. Both libraries are
+widely used to transform data between models e.g. domain to database, API to domain, etc. They both provide a lot of
+value by reducing the boilerplate significantly. Unfortunately, if both the source and target models use refined types,
+the transformation is not seamless. You have to define the transformers manually, similarly as you'd do without using
+refined types. However, I found one positive aspect - if you transform a refined type to a regular type, it works
+without any boilerplate in both `chimney` and `ducktape`. Here's an example for `chimney`:
+
+[//]: # (@formatter:off)
+
+```scala
+case class User(username: String :| MinLength[3], age: Int :| Positive)
+case class DatabaseUser(username: String, age: Int)
+
+val refinedUser = User("John", 21)
+val databaseUser = refinedUser.transformInto[DatabaseUser] // or .to[...] for ducktape
+```
+
+[//]: # (@formatter:on)
 
 ## Alternatives
 
