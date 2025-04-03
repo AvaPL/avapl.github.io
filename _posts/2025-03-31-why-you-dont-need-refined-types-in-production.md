@@ -414,10 +414,128 @@ val databaseUser = refinedUser.transformInto[DatabaseUser] // or .to[...] for du
 
 [//]: # (@formatter:on)
 
+This can be handy when have a strict model (e.g. for the domain) and a more permissive one (e.g. for database).
+
 ## Alternatives
+
+Okay, so, you now know why I think refined types are not the best solution for production code. But what do I recommend
+instead? Well, I think the best solution is to use regular types and smart constructors. This is nothing new, nothing
+fancy, and widely used across many programming languages. They provide the same benefits at runtime as refined types and
+much greater flexibility, at least in my opinion.
+
+Despite smart constructors being a well-known pattern, I'd like to show a few examples of how to implement them in
+Scala. We have quite a few options, and you can choose the one that fits your needs the best.
+
+Throughout this section, I'll use the following example of a `User` class:
+
+[//]: # (@formatter:off)
+
+```scala
+case class User private (username: String, age: Int)
+```
+
+and related exceptions:
+
+```scala
+class UsernameTooShortException(username: String) extends RuntimeException(s"Username '$username' is too short")
+class NegativeAgeException(age: Int) extends RuntimeException(s"Age '$age' is negative")
+type UserValidationException = UsernameTooShortException | NegativeAgeException
+```
+
+[//]: # (@formatter:on)
 
 ### Smart constructors with exceptions
 
+This one is the simplest and most straightforward. You just throw an exception if the validation fails. Actually, this
+is the approach I used in the examples above. It's simple, easy to understand, and doesn't require any additional
+libraries. Here's an example how it'd look like for the `User` class:
+
+[//]: # (@formatter:off)
+
+```scala
+def smartConstructorWithExceptions(username: String, age: Int): User = {
+  if (username.length < 3) throw UsernameTooShortException(username)
+  if (age < 0) throw NegativeAgeException(age)
+  User(username, age)
+}
+```
+
+[//]: # (@formatter:on)
+
+The downsides?
+
+- Exceptions are side effects, and you have to remember about handling them
+- The constructor fails on the first validation error, so you don't get all the errors at once
+
+Let's see other alternatives.
+
 ### Smart constructors with Option/Either
 
+This is a more functional approach. Instead of throwing exceptions, you return an `Option` or `Either` type. Here's how
+it'd look like for the `User` class with `Option`:
+
+[//]: # (@formatter:off)
+
+```scala
+def smartConstructorWithOption(username: String, age: Int): Option[User] =
+  Option.unless(username.length < 3 || age < 0) {
+    User(username, age)
+  }
+```
+
+[//]: # (@formatter:on)
+
+While it's more functional, we lost information what went wrong. We can only tell if the validation passed or not.
+
+> [Here](https://medium.com/virtuslab/option-the-null-of-our-times-77f3bfd7c234) is an interesting article about
+> how `Option` can be percieved as a `null` of our times.
+{: .prompt-tip }
+
+We can use `Either` to retain the information about the error:
+
+[//]: # (@formatter:off)
+
+```scala
+def smartConstructorWithEither(username: String, age: Int): Either[UserValidationException, User] =
+  if (username.length < 3)
+    Left(UsernameTooShortException(username))
+  else if (age < 0)
+    Left(NegativeAgeException(age))
+  else
+    Right(User(username, age))
+```
+
+[//]: # (@formatter:on)
+
+While we now have the information about the error, we still fail on the first validation error. Can we do better?
+
 ### Smart constructors with Validated
+
+For me, the best solution is to use `Validated` type from `cats` or similar. This way we get the benefits of `Either`,
+while also being able to accumulate the errors. Here's how it looks like for the `User` class:
+
+[//]: # (@formatter:off)
+
+```scala
+def smartConstructorWithValidated(username: String, age: Int): ValidatedNel[UserValidationException, User] =
+  (
+    if (username.length < 3) (UsernameTooShortException(username): UserValidationException).invalidNel else username.validNel,
+    if (age < 0) (NegativeAgeException(age): UserValidationException).invalidNel else age.validNel
+  ).mapN(User.apply)
+```
+
+[//]: # (@formatter:on)
+
+> Note: we have to help the compiler a bit by explicitly widening the exception type to `UserValidationException`,
+> otherwise `mapN` won't be able to concatenate the list of errors.
+{: .prompt-info }
+
+Of course, you can extract each validation to a separate method to make it more readable or to be able to reuse it. With
+this approach we get either a valid `User` instance or a list of all validation errors that occurred. In my opinion, in
+most cases this is the best solution.
+
+You can find the code for the examples above [on Scastie](https://scastie.scala-lang.org/03eGrI5tRp2F9VwNzbUH3A).
+
+## Summary
+
+[//]: # (TODO: Add summary)
