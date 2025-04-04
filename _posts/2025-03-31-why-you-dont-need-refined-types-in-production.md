@@ -538,4 +538,18 @@ You can find the code for the examples above [on Scastie](https://scastie.scala-
 
 ## Summary
 
-[//]: # (TODO: Add summary)
+And that would be it. I hope that even if you have a different opinion than mine, the post didn't discourage you from
+thinking about the topic. I think that refined types are a great tool, but I don't see any broad use cases for them in
+production code. We have a powerful type system in Scala, and we should use it to our advantage. This doesn't
+necessarily mean that we have to use refined types. In my opinion, we can achieve much better results with regular types
+and smart constructors. They provide the same benefits at runtime, while also being more flexible and easier to maintain
+in the long run.
+
+Also, novadays we quite often raise the topic of how easy it is to onboard new developers to Scala. I think that refined
+types are a great example of how we can make it harder. It's another tool to learn, and another library to maintain.
+Smart constructors are a well-known pattern, and most developers will be able to understand them without any additional
+learning curve. While compilation errors might be useful, I think that overall a well-defined validation logic is much
+more readable and robust (but always remember to test it!).
+
+If you have any questions or comments to share, feel free to leave them below. I'm always happy to discuss different
+opinions and learn about your experiences. Thanks for reading!
