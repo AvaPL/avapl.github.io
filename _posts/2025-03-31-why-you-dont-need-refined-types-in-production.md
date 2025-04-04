@@ -22,7 +22,7 @@ As you might have guessed from the title, I'm not a big fan of refined types. Wh
 I don't think they are that easy to maintain in the long run. In this post, I will explain why I think that way and what
 I would recommend instead.
 
-[//]: # (TODO: Add image)
+![Fluffy monsters addressing danger](fluffy_monsters_addressing_danger.png){: w="350"}
 
 ## What are refined types?
 
@@ -48,6 +48,10 @@ type Email = String :| Match["""^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,3}$"""]
 val validEmail: Email = "user@example.com" // valid
 // val invalidEmail: Email = "invalid-email" // compile-time error
 ```
+
+> At the moment of writing this post, the highlighting in the code blocks doesn't support literals as types properly.
+> Please ignore those few places where some parts are red for no reason.
+{: .prompt-info }
 
 Quite impressive, right? We can also validate the input at runtime using `refineV`:
 
