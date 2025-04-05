@@ -8,8 +8,6 @@ media_subpath: /assets/img/2025-03-31-why-you-dont-need-refined-types-in-product
 
 [//]: # (TODO: Change "you" to "we")
 
-[//]: # (TODO: Fix prompts formatting)
-
 Scala’s ecosystem is full of examples that prove just how powerful its type system really is. You can, for
 instance, [implement the WHILE programming language using only types](https://scastie.scala-lang.org/IbyH3g4qQladbPe9rcGGzg)
 or even
@@ -139,7 +137,7 @@ from [Wikipedia’s definition of a type system](https://en.wikipedia.org/wiki/T
 
 > A type system dictates the operations that can be performed on a term. For variables, the type system determines the
 > allowed values of that term.
-> {: .prompt-info }
+{: .prompt-info }
 
 That’s not the only way to define a type system, but I think it captures the heart of it. A good type system isn’t just
 about what values are allowed — it’s about what operations make sense on those values. And in my view, *that’s* the real
@@ -197,7 +195,7 @@ object ClassicUser {
 
 > Note: I’m using exceptions here just to keep things simple. In later sections, I’ll go over some more functional
 > alternatives.  
-> {: .prompt-info }
+{: .prompt-info }
 
 At runtime, refined types feel like glorified constructors. They don’t offer any extra operations you can perform on the
 data — they just validate the input when an instance is created. And once the object exists, you're on your own. You
@@ -271,7 +269,7 @@ constructor anyway. This pattern holds true for any other aggregate validation a
 > impractical. [Here](https://virtuslab.com/success-stories/car-configurator-modernization/) is an example of a domain
 > in which validation of the whole configuration was one of the main concerns because the number of parameters was so
 > huge.
-> {: .prompt-info }
+{: .prompt-info }
 
 ### Backward/forward compatibility of models
 
@@ -541,7 +539,7 @@ passed or failed.
 
 > [Here](https://medium.com/virtuslab/option-the-null-of-our-times-77f3bfd7c234) is an interesting article discussing
 > how `Option` can be perceived as the `null` of our times.
-> {: .prompt-tip }
+{: .prompt-tip }
 
 To retain error information, we can use `Either`:
 
@@ -580,7 +578,7 @@ def smartConstructorWithValidated(username: String, age: Int): ValidatedNel[User
 
 > Note: We have to help the compiler a bit by explicitly widening the exception type to `UserValidationException`,
 > otherwise, `mapN` won't be able to concatenate the list of errors.
-> {: .prompt-info }
+{: .prompt-info }
 
 Of course, you can extract each validation into a separate method to make the code more readable or to be able to reuse
 it. With this approach, we either get a valid `User` instance or a list of all the validation errors that occurred. In
