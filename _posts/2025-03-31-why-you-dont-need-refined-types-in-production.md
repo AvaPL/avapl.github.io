@@ -135,7 +135,7 @@ from [Wikipedia’s definition of a type system](https://en.wikipedia.org/wiki/T
 
 > A type system dictates the operations that can be performed on a term. For variables, the type system determines the
 > allowed values of that term.
-{: .prompt-info }
+> {: .prompt-info }
 
 That’s not the only way to define a type system, but I think it captures the heart of it. A good type system isn’t just
 about what values are allowed — it’s about what operations make sense on those values. And in my view, *that’s* the real
@@ -193,7 +193,7 @@ object ClassicUser {
 
 > Note: I’m using exceptions here just to keep things simple. In later sections, I’ll go over some more functional
 > alternatives.  
-{: .prompt-info }
+> {: .prompt-info }
 
 At runtime, refined types feel like glorified constructors. They don’t offer any extra operations you can perform on the
 data — they just validate the input when an instance is created. And once the object exists, you're on your own. You
@@ -207,17 +207,17 @@ and map it to your own exception, but that’s just more boilerplate, which is e
 
 ### Fields depending on other fields
 
-Continuing the topic of validation, usually an aggregate in domain driven design has to fulfill some invariants. That
-doesn't always mean that only the fields have a valid structure, but that the whole object is valid in domain terms.
+Let’s stay on the topic of validation for a moment. In domain-driven design, an aggregate often has to satisfy certain
+invariants — not just "each field looks valid," but "the entire object makes sense in business terms."
 
-Let's use a simple example of a domain in which the business sells laptops. The constraints are:
+Take a simple example from a laptop-selling domain. The business rules are:
 
-- the laptop has 8 or 10 core CPU,
-- the laptop has 16, 24 or 32 GB of RAM,
-- the laptop has 512 GB or 1 TB SSD,
-- when the laptop has 10 core CPU, it must have at least 24 GB of RAM.
+- The laptop must have an 8-core or 10-core CPU
+- It must have 16, 24, or 32 GB of RAM
+- It must have either 512 GB or 1 TB of SSD storage
+- If it has a 10-core CPU, it must have *at least* 24 GB of RAM
 
-We can easily represent the first 3 constraints even without refined types, by using Scala union types:
+The first three constraints are easy to model even without refined types using Scala 3’s union types:
 
 [//]: # (@formatter:off)
 
@@ -231,9 +231,10 @@ case class LaptopConfiguration(
 
 [//]: # (@formatter:on)
 
-However, the last constraint is not possible to represent on the type level in simple way. I assume that there is some
-fancy Scala magic that could be used to represent it, but I don't think it's worth the effort and further confusion. If
-we had a simple constructor, the validation is very straightforward:
+However, the last constraint is not something we can easily represent at the type level. Sure, you could probably pull
+off some fancy Scala magic to handle it, but I don’t think it’s worth the complexity or potential confusion.
+
+If we use a simple constructor, the validation becomes straightforward:
 
 [//]: # (@formatter:off)
 
@@ -257,16 +258,16 @@ object LaptopConfiguration{
 
 [//]: # (@formatter:on)
 
-Again, we get full flexibility of the validation. We can throw any exception we want with any message. With refined
-types, we'd have to apply the validation of the last constraint in constructor anyway. This is also true for any other
-validation of our aggregate after we apply some domain logic on it.
+With this approach, we have complete flexibility in validation. We can throw any exception we like, with a custom
+message that fits the context. With refined types, we’d still need to do the last bit of validation inside the
+constructor anyway. This pattern holds true for any other aggregate validation after performing domain logic.
 
 > Some of you might suggest introducing a separate type for each possible configuration, that'd also prevent us from
 > creating an invalid state. While for some domains it's possible, for others it may be
 > impractical. [Here](https://virtuslab.com/success-stories/car-configurator-modernization/) is an example of a domain
 > in which validation of the whole configuration was one of the main concerns because the number of parameters was so
 > huge.
-> {: .prompt-info }
+{: .prompt-info }
 
 ### Backward/forward compatibility of models
 
