@@ -6,9 +6,7 @@ tags: [ scala, functional programming, ddd, domain-driven design, tips ]     # T
 media_subpath: /assets/img/2025-03-31-why-you-dont-need-refined-types-in-production/
 ---
 
-[//]: # (TODO: Change "you" to "we")
-
-Scala’s ecosystem is full of examples that prove just how powerful its type system really is. You can, for
+Scala’s ecosystem is full of examples that prove just how powerful its type system really is. We can, for
 instance, [implement the WHILE programming language using only types](https://scastie.scala-lang.org/IbyH3g4qQladbPe9rcGGzg)
 or even
 [model an entire domain purely with types](https://medium.com/virtuslab/data-modeling-in-scala-3-but-i-only-use-types-b6f11ead4c28).
@@ -79,7 +77,7 @@ have some solid advantages.
 
 ### Elimination of invalid states
 
-Refined types enforce constraints at the type level. That means any value used in your code must already satisfy those
+Refined types enforce constraints at the type level. That means any value used in our code must already satisfy those
 constraints — right from the moment it’s created. The result? No more invalid states sneaking in at compile time.
 
 [//]: # (@formatter:off)
@@ -100,9 +98,9 @@ a valid website URL.
 ### Improved readability and less boilerplate
 
 This one’s a bit subjective, but here’s the biggest advantage from my point of view: with refined types, the validation
-lives right next to the type definition. You don’t have to hunt through the codebase to figure out what’s being
-checked — it’s all there in front of you. Sure, if you inline a monster regex, things can get a little messy. But when
-used with care, refined types can sometimes make your code easier to understand.
+lives right next to the type definition. We don’t have to hunt through the codebase to figure out what’s being
+checked — it’s all there in front of us. Sure, if we inline a monster regex, things can get a little messy. But when
+used with care, refined types can sometimes make our code easier to understand.
 
 ### Runtime validation utils
 
@@ -197,15 +195,15 @@ object ClassicUser {
 > alternatives.  
 {: .prompt-info }
 
-At runtime, refined types feel like glorified constructors. They don’t offer any extra operations you can perform on the
-data — they just validate the input when an instance is created. And once the object exists, you're on your own. You
-still have to implement the logic that actually *uses* the data, assuming it’s valid. And you still have to write tests
-for that logic — because as shown in the `secondInitial` example, refined types won't stop you from introducing bugs.
+At runtime, refined types feel like glorified constructors. They don’t offer any extra operations we can perform on the
+data — they just validate the input when an instance is created. And once the object exists, we're on our own. We
+still have to implement the logic that actually *uses* the data, assuming it’s valid. And we still have to write tests
+for that logic — because as shown in the `secondInitial` example, refined types won't stop us from introducing bugs.
 
-This is also where we start to see some limitations. With `ClassicUser`, you can throw any exception type, with a clear
-and specific message. For instance, you might throw custom `EmptyStringError` or a `StringTooShortError`. With refined
-types? You're stuck with a generic `IllegalArgumentException` and predefined message. Of course, you can try to catch it
-and map it to your own exception, but that’s just more boilerplate, which is exactly what we’re trying to avoid.
+This is also where we start to see some limitations. With `ClassicUser`, we can throw any exception type, with a clear
+and specific message. For instance, we might throw custom `EmptyStringError` or a `StringTooShortError`. With refined
+types? We're stuck with a generic `IllegalArgumentException` and predefined message. Of course, we can try to catch it
+and map it to our own exception, but that’s just more boilerplate, which is exactly what we’re trying to avoid.
 
 ### Fields depending on other fields
 
@@ -233,7 +231,7 @@ case class LaptopConfiguration(
 
 [//]: # (@formatter:on)
 
-However, the last constraint is not something we can easily represent at the type level. Sure, you could probably pull
+However, the last constraint is not something we can easily represent at the type level. Sure, we could probably pull
 off some fancy Scala magic to handle it, but I don’t think it’s worth the complexity or potential confusion.
 
 If we use a simple constructor, the validation becomes straightforward:
@@ -379,10 +377,10 @@ Another caveat is library support. I think it's quite obvious that not every lib
 refined types. For example, [avro4s supports refined](https://github.com/sksamuel/avro4s#refined-support),
 but [iron doesn’t support avro4s](https://github.com/Iltotore/iron/issues/215). Of course, I’m not saying that refined
 types are the cause of this issue — it’s a common challenge with many libraries in the ecosystem. However, when dealing
-with types, it becomes cumbersome to write all the boilerplate, such as Avro codecs, manually, especially when you have
-many models in your domain.
+with types, it becomes cumbersome to write all the boilerplate, such as Avro codecs, manually, especially when we have
+many models in our domain.
 
-If you were using regular types, you wouldn’t face this problem. Once again, because we care about runtime
+If we were using regular types, we wouldn’t face this problem. Once again, because we care about runtime
 transformations, the difference in runtime validation between regular types and refined types with external library
 bindings isn’t significant.
 
@@ -406,7 +404,7 @@ val invalidUser = RefinedUser.fromJson("""{"username": "Jo", "age": -100}""")
 [//]: # (@formatter:on)
 
 For a valid user, we simply get a `RefinedUser` instance. For an invalid user, we get a `io.circe.DecodingFailure`.
-Great, right? Well, in my opinion, not quite. `io.circe.DecodingFailure` is a very generic exception. If you wanted to
+Great, right? Well, in my opinion, not quite. `io.circe.DecodingFailure` is a very generic exception. If we wanted to
 implement error handling, such as displaying custom messages or introducing fallbacks, the only way to determine what
 went wrong is by inspecting the error message. This isn’t exactly what functional programming is praised for — we not
 only love types in our models, but also we love types of exceptions.
@@ -440,10 +438,10 @@ arise from `circe` decoders (which are probably irrecoverable). Another point in
 The last point about library interoperability I want to touch on concerns the use of `chimney` and `ducktape`. Both
 libraries are widely used to transform data between models, such as from domain to database or API to domain. They
 provide significant value by reducing boilerplate code. Unfortunately, if both the source and target models use refined
-types, the transformation process isn't seamless. You need to define the transformers manually, similar to how you'd do
+types, the transformation process isn't seamless. We need to define the transformers manually, similar to how we'd do
 it without using refined types.
 
-However, I did find a positive aspect — if you transform a refined type to a regular type, it works without any
+However, I did find a positive aspect — if we transform a refined type to a regular type, it works without any
 boilerplate in both `chimney` and `ducktape`. Here’s an example using `chimney`:
 
 [//]: # (@formatter:off)
@@ -513,8 +511,8 @@ def smartConstructorWithExceptions(username: String, age: Int): User = {
 
 The downsides?
 
-- Exceptions are side effects, so you need to remember to handle them
-- The constructor fails on the first validation error, meaning you won't get all errors at once
+- Exceptions are side effects, so we need to remember to handle them
+- The constructor fails on the first validation error, meaning we won't get all errors at once
 
 Let's explore some other alternatives.
 
