@@ -481,7 +481,11 @@ Throughout this section, I'll use the following example of a `User` class:
 case class User private (username: String, age: Int)
 ```
 
+[//]: # (@formatter:on)
+
 and related exceptions:
+
+[//]: # (@formatter:off)
 
 ```scala
 class UsernameTooShortException(username: String) extends RuntimeException(s"Username '$username' is too short")
@@ -493,9 +497,9 @@ type UserValidationException = UsernameTooShortException | NegativeAgeException
 
 ### Smart constructors with exceptions
 
-This one is the simplest and most straightforward. You just throw an exception if the validation fails. Actually, this
-is the approach I used in the examples above. It's simple, easy to understand, and doesn't require any additional
-libraries. Here's an example how it'd look like for the `User` class:
+This is the simplest and most straightforward approach: throw an exception when validation fails. In fact, this is the
+method I used in the examples above. It's easy to understand and doesn't require any additional libraries. Here's how it
+would look for the `User` class:
 
 [//]: # (@formatter:off)
 
@@ -511,15 +515,15 @@ def smartConstructorWithExceptions(username: String, age: Int): User = {
 
 The downsides?
 
-- Exceptions are side effects, and you have to remember about handling them
-- The constructor fails on the first validation error, so you don't get all the errors at once
+- Exceptions are side effects, so you need to remember to handle them
+- The constructor fails on the first validation error, meaning you won't get all errors at once
 
-Let's see other alternatives.
+Let's explore some other alternatives.
 
 ### Smart constructors with Option/Either
 
-This is a more functional approach. Instead of throwing exceptions, you return an `Option` or `Either` type. Here's how
-it'd look like for the `User` class with `Option`:
+This is a more functional approach. Instead of throwing exceptions, we return an `Option` or `Either` type. Here's how
+it would look for the `User` class using `Option`:
 
 [//]: # (@formatter:off)
 
@@ -532,13 +536,14 @@ def smartConstructorWithOption(username: String, age: Int): Option[User] =
 
 [//]: # (@formatter:on)
 
-While it's more functional, we lost information what went wrong. We can only tell if the validation passed or not.
+While this is more functional, we lose valuable information about what went wrong. We can only tell if the validation
+passed or failed.
 
-> [Here](https://medium.com/virtuslab/option-the-null-of-our-times-77f3bfd7c234) is an interesting article about
-> how `Option` can be percieved as a `null` of our times.
+> [Here](https://medium.com/virtuslab/option-the-null-of-our-times-77f3bfd7c234) is an interesting article discussing
+> how `Option` can be perceived as the `null` of our times.
 > {: .prompt-tip }
 
-We can use `Either` to retain the information about the error:
+To retain error information, we can use `Either`:
 
 [//]: # (@formatter:off)
 
@@ -554,12 +559,12 @@ def smartConstructorWithEither(username: String, age: Int): Either[UserValidatio
 
 [//]: # (@formatter:on)
 
-While we now have the information about the error, we still fail on the first validation error. Can we do better?
+With `Either`, we now have error details, but we still fail on the first validation error. Can we do better?
 
 ### Smart constructors with Validated
 
-For me, the best solution is to use `Validated` type from `cats` or similar. This way we get the benefits of `Either`,
-while also being able to accumulate the errors. Here's how it looks like for the `User` class:
+For me, the best solution is to use the `Validated` type from `cats` (or an equivalent). This approach combines the
+benefits of `Either` while also allowing us to accumulate errors. Here's how it looks for the `User` class:
 
 [//]: # (@formatter:off)
 
@@ -573,30 +578,29 @@ def smartConstructorWithValidated(username: String, age: Int): ValidatedNel[User
 
 [//]: # (@formatter:on)
 
-> Note: we have to help the compiler a bit by explicitly widening the exception type to `UserValidationException`,
-> otherwise `mapN` won't be able to concatenate the list of errors.
+> Note: We have to help the compiler a bit by explicitly widening the exception type to `UserValidationException`,
+> otherwise, `mapN` won't be able to concatenate the list of errors.
 > {: .prompt-info }
 
-Of course, you can extract each validation to a separate method to make it more readable or to be able to reuse it. With
-this approach we get either a valid `User` instance or a list of all validation errors that occurred. In my opinion, in
-most cases this is the best solution.
+Of course, you can extract each validation into a separate method to make the code more readable or to be able to reuse
+it. With this approach, we either get a valid `User` instance or a list of all the validation errors that occurred. In
+my opinion, this is the best solution in most cases.
 
 You can find the code for the examples above [on Scastie](https://scastie.scala-lang.org/03eGrI5tRp2F9VwNzbUH3A).
 
 ## Summary
 
-And that would be it. I hope that even if you have a different opinion than mine, the post didn't discourage you from
-thinking about the topic. I think that refined types are a great tool, but I don't see any broad use cases for them in
-production code. We have a powerful type system in Scala, and we should use it to our advantage. This doesn't
-necessarily mean that we have to use refined types. In my opinion, we can achieve much better results with regular types
-and smart constructors. They provide the same benefits at runtime, while also being more flexible and easier to maintain
-in the long run.
+And that’s a wrap! I hope that, even if you don’t fully agree with my perspective, this post has sparked some thoughtful
+consideration on the topic. I believe refined types are a unique tool, but I don’t see many broad use cases for them in
+production code. Scala’s type system is powerful, and we should leverage it to our advantage. That doesn’t necessarily
+mean we need to rely on refined types. In my opinion, regular types paired with smart constructors can achieve the same
+benefits at runtime while offering more flexibility and easier long-term maintenance.
 
-Also, novadays we quite often raise the topic of how easy it is to onboard new developers to Scala. I think that refined
-types are a great example of how we can make it harder. It's another tool to learn, and another library to maintain.
-Smart constructors are a well-known pattern, and most developers will be able to understand them without any additional
-learning curve. While compilation errors might be useful, I think that overall a well-defined validation logic is much
-more readable and robust (but always remember to test it!).
+Nowadays, we often raise the topic of how easy it is to onboard new developers to Scala. I think that refined
+types are a great example of how we can make it harder. It's another tool to learn and another library to maintain.
+Smart constructors, on the other hand, are a well-established pattern, and most developers can grasp them with little
+extra learning. While compilation errors are valuable, I believe that well-defined validation logic is generally more
+readable and robust — just be sure to test it thoroughly!
 
-If you have any questions or comments to share, feel free to leave them below. I'm always happy to discuss different
-opinions and learn about your experiences. Thanks for reading!
+If you have any questions or comments, feel free to share them below. I’m eager to hear different opinions and learn
+about your experiences. Thanks for reading!
