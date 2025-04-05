@@ -6,6 +6,8 @@ tags: [ scala, functional programming, ddd, domain-driven design, tips ]     # T
 media_subpath: /assets/img/2025-03-31-why-you-dont-need-refined-types-in-production/
 ---
 
+[//]: # (TODO: Change "you" to "we")
+
 Scala’s ecosystem is full of examples that prove just how powerful its type system really is. You can, for
 instance, [implement the WHILE programming language using only types](https://scastie.scala-lang.org/IbyH3g4qQladbPe9rcGGzg)
 or even
@@ -267,82 +269,85 @@ constructor anyway. This pattern holds true for any other aggregate validation a
 > impractical. [Here](https://virtuslab.com/success-stories/car-configurator-modernization/) is an example of a domain
 > in which validation of the whole configuration was one of the main concerns because the number of parameters was so
 > huge.
-{: .prompt-info }
+> {: .prompt-info }
 
 ### Backward/forward compatibility of models
 
-In the world of agile development, we often have to deal with backward and forward compatibility of our models. The
-requirements change, the data structure changes, and we have to adapt our code to it. This is especially true for
-database models (which require at least backward compatibility) and API models (which often requires forward
+In the world of agile development, we often need to navigate the challenges of backward and forward compatibility.
+Requirements evolve, data structures change, and our code must adapt accordingly. This is especially critical for
+database models (which typically need at least backward compatibility) and API models (which often require forward
 compatibility).
 
-Let's focus on the backward compatibility. When we change the structure of our models, we have to make sure that
-the old data can still be read by the new code. How to do that with refined types? It actually depends on the type of
-the change we're introducing.
+Let’s focus on backward compatibility. When the structure of our models changes, we must ensure that old data can still
+be read by the new code. But how do we handle this with refined types? The answer depends on the nature of the change
+we’re introducing.
 
-Hipothetically, let's say we have the following sequence of business requirements:
+Hypothetically, let’s imagine the following sequence of business requirements that are given to us over time:
 
-1. Introduce an identifier that is contains exactly 4 characters that will be persisted in a database.
-2. Allow identifiers that are 4 or 5 characters long.
-3. Identifiers now have to be 5 characters long. If the identifier is 4 characters long, it should be padded with `0`.
+**Requirement 1**: Introduce an identifier that must contain exactly 4 characters, which will be persisted in a
+database.<br>
+**Requirement 2**: Allow identifiers that are either 4 or 5 characters long.<br>
+**Requirement 3**: The identifier must now always be 5 characters long. If the identifier is 4 characters long, it
+should be padded with `0`.
 
-Point 1 is easy to implement. We can just introduce a refined type with predicate `FixedLength[4]`:
+Point 1 is easy to implement. We can simply introduce a refined type with the predicate `FixedLength[4]`:
 
 ```scala
 type IdentifierV1 = String :| FixedLength[4]
 ```
 
-Let's now try to implement point 2. We can use `MinLength[4]` and `MaxLength[5]` predicates:
+Now, let’s move on to point 2. We can use `MinLength[4]` and `MaxLength[5]` predicates:
 
 ```scala
 type IdentifierV2 = String :| (MinLength[4] & MaxLength[5])
 ```
 
-So far so good. Remember that we persisted `Identifier1` values in the database, and we have to maintain backward
-compatibility. Because fixed length of 4 from `Identifier1` fulfils the requirements of `Identifier2`, we can say that
-the change is backward-compatible. We can use a value of type `Identifier1` as a value of type `Identifier2`:
+So far, so good. Remember, we’ve persisted `IdentifierV1` values in the database, and we need to ensure backward
+compatibility. Since a 4-character `IdentifierV1` satisfies the requirements of `IdentifierV2`, we can say the change is
+backward-compatible. We can use a value of type `IdentifierV1` as a value of type `IdentifierV2`:
 
 ```scala
 val myIdentifierV1: IdentifierV1 = "abcd"
 val myIdentifierV2: IdentifierV2 = myIdentifierV1
 ```
 
-We can run it and get... a compilation error.
+Now we can run it and get... a compilation error.
 
 > Cannot refine value at compile-time because the predicate cannot be evaluated.<br>
 > This is likely because the condition or the input value isn't fully inlined.
 >
 > To test a constraint at runtime, use one of the `refine...` extension methods.
 
-We could try to fix it, but I can't be bothered ¯\_(ツ)_/¯ Why? As mentioned above, we mostly care about the runtime
-validation anyway. If we use one of the `refine...` methods as suggested in the error, it'll work just fine:
+At this point, we could try to fix it, but honestly, I can’t be bothered ¯\_(ツ)_/¯ Why? As mentioned before, runtime
+validation is what truly matters. If we use one of the `refine...` methods as suggested in the error, everything works
+just fine:
 
 ```scala
 val myIdentifierV2: IdentifierV2 = myIdentifierV1.refineUnsafe // works
 ```
 
-Okay, now to the point 3. We can just use `FixedLength[5]` predicate:
+Now, for point 3. We can just use the `FixedLength[5]` predicate:
 
 ```scala
 type IdentifierV3 = String :| FixedLength[5]
 ```
 
-This change is not backward-compatible, because previously we allowed identifiers that were 4 characters long. Luckily,
-the requirement describes the way in which we can transform the old identifiers to the new ones. We can just pad them
-with `0`. But how are we supposed to do that? Well, again, with a transformation on the runtime:
+This change is not backward-compatible, because we previously allowed identifiers with only 4 characters. Fortunately,
+the new requirement specifies how we can transform old identifiers into the new format: by padding them with `0`. But
+how do we achieve this? Well, once again, we perform the transformation at runtime:
 
 ```scala
 val myIdentifierV2: IdentifierV2 = "abcd"
 val myIdentifierV3: IdentifierV3 = myIdentifierV2.padTo(5, '0').refineUnsafe
 ```
 
-Refined types again don't help us with the transformation. In this case, they don't differ from a regular transformation
-that we'd apply manually between the models. We'd also have to write a few tests to make sure that the transformation
-works as expected. It's another proof that runtime validation is intrinsic.
+Refined types don’t help us with this transformation. In fact, they don’t differ from a regular transformation we would
+apply manually between models. We’d still need to write a few tests to ensure that the transformation works as expected.
+This highlights once again that runtime validation is intrinsic.
 
-I could further describe forward compatibility or transitive compatibilities, but I think the point is clear. Other
-kinds of compatibility fall into the same category, in which we are required to remember about the types we used in the
-past.
+I could continue discussing forward or transitive compatibilities, but I think the point is clear. All types
+of compatibility fall into the same category, where we have to remember about the types we've used in the past and how
+they affect our application.
 
 ### Compatibility with libraries
 
