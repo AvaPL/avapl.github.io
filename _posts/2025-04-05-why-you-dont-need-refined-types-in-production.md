@@ -1,9 +1,9 @@
 ---
 title: Why you don't need refined types in production?
-date: 2025-03-31 12:00:00 +0000
+date: 2025-04-05 12:00:00 +0000
 categories: [ Blog ]
 tags: [ scala, functional programming, ddd, domain-driven design, tips ]     # TAG names should always be lowercase
-media_subpath: /assets/img/2025-03-31-why-you-dont-need-refined-types-in-production/
+media_subpath: /assets/img/2025-04-05-why-you-dont-need-refined-types-in-production/
 ---
 
 Scala’s ecosystem is full of examples that prove just how powerful its type system really is. We can, for
