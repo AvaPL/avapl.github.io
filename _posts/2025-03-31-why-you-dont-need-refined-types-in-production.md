@@ -6,32 +6,33 @@ tags: [ scala, functional programming, ddd, domain-driven design, tips ]     # T
 media_subpath: /assets/img/2025-03-31-why-you-dont-need-refined-types-in-production/
 ---
 
-Scala's ecosystem is full of examples that proves that its type system is exceptional. For instance, you can
-implement [WHILE programming language using only types]( https://scastie.scala-lang.org/IbyH3g4qQladbPe9rcGGzg)
-or [model a whole domain](https://medium.com/virtuslab/data-modeling-in-scala-3-but-i-only-use-types-b6f11ead4c28).
-While these examples are rather extreme and not very practical, leveraging Scala's type system started to seep into our
-production code via various libraries.
+Scala’s ecosystem is full of examples that prove just how powerful its type system really is. You can, for
+instance, [implement the WHILE programming language using only types](https://scastie.scala-lang.org/IbyH3g4qQladbPe9rcGGzg)
+or even
+[model an entire domain purely with types](https://medium.com/virtuslab/data-modeling-in-scala-3-but-i-only-use-types-b6f11ead4c28).
 
-In this post, I want to share my thoughts regarding so-called "refined types". Examples of the libraries that provide
-them are:
+Sure, these examples are a bit extreme and not exactly practical, but the influence of Scala’s type system has
+definitely made its way into real-world code—especially through some clever libraries.
+
+In this post, I want to share my thoughts on the idea of "refined types." A couple of popular libraries in this space
+are:
 
 - [refined](https://github.com/fthomas/refined)
 - [iron](https://github.com/Iltotore/iron)
 
-As you might have guessed from the title, I'm not a big fan of refined types. While I'm impressed by their capabilities,
-I don't think they are that easy to maintain in the long run. In this post, I will explain why I think that way and what
-I would recommend instead.
+As you might have guessed from the title, I’m not the biggest fan of refined types. Don’t get me wrong — I’m genuinely
+impressed by what they can do. But when it comes to long-term maintenance, I find them a bit... tricky. So, let me walk
+you through why I feel this way — and what I’d suggest doing instead.
 
 ![Fluffy monsters addressing danger](fluffy_monsters_addressing_danger.png){: w="350"}
 
 ## What are refined types?
 
-Refined types in Scala allow you to impose additional constraints on existing types at the type level, ensuring
-correctness at compile-time. Instead of just defining a type like `Int` or `String`, refined types let you specify
-constraints such as "this integer must be positive" or "this string must be non-empty".
+Refined types in Scala let you add extra constraints to existing types — at the type level — so you can catch more
+errors at compile time. Instead of just saying something is an `Int` or a `String`, you can say things like "this
+integer must be positive" or "this string must be non-empty."
 
-Let's see an example of a simple refined type implemented via the `iron` library (which is newer than `refined` and
-supports Scala 3 better):
+Here’s a simple example using the `iron` library (which is newer than `refined` and has better support for Scala 3):
 
 ```scala
 type PositiveInt = Int :| Positive
@@ -39,9 +40,9 @@ val age: PositiveInt = 25 // valid
 // val invalidAge: PositiveInt = -5 // compile-time error
 ```
 
-We have a base type `Int` and we are refining it with a constraint `Positive`.
+We’re taking a regular `Int` and refining it with the constraint `Positive`.
 
-Let's now look at a more fancy example, which validates an email via a simplified regex:
+Let’s take it up a notch with a slightly fancier example. This one validates an email using a simplified regex:
 
 ```scala
 type Email = String :| Match["""^[a-z0-9]+@[a-z0-9]+\.[a-z]{2,3}$"""]
@@ -49,11 +50,11 @@ val validEmail: Email = "user@example.com" // valid
 // val invalidEmail: Email = "invalid-email" // compile-time error
 ```
 
-> At the moment of writing this post, the highlighting in the code blocks doesn't support literals as types properly.
-> Please ignore those few places where some parts are red for no reason.
+> At the time of writing, the syntax highlighting doesn’t fully support literals used as types. So if you see some weird
+> red squiggles — don’t worry about them.  
 {: .prompt-info }
 
-Quite impressive, right? We can also validate the input at runtime using `refineV`:
+Pretty cool, right? You can also validate values at runtime using `refineEither`:
 
 ```scala
 val input: String = "user@example.com"
@@ -65,19 +66,19 @@ validatedEmail match {
 }
 ```
 
-This is only a tip of the iceberg. `iron` provides a lot of other features, such as combining multiple predicates,
-creating custom predicates, and even integrating with other libraries. You can run the examples above
-yourself [here in Scastie](https://scastie.scala-lang.org/5P05Y4KRQg2pQsXUgGCkfw).
+And this is just the tip of the iceberg. `iron` offers plenty more — like combining multiple predicates, defining your
+own ones, and integrating with other libraries. If you want to try these examples
+yourself, [you can run them in Scastie](https://scastie.scala-lang.org/5P05Y4KRQg2pQsXUgGCkfw).
 
 ## Benefits of using refined types
 
-Before I try to convince you that refined types aren't always a good idea, let me first describe some of the benefits
-they provide.
+Before I try to convince you that refined types aren't always the best idea, let’s give credit where it’s due — they do
+have some solid advantages.
 
 ### Elimination of invalid states
 
-Constraints in refined types are enforced on the type level. This means that every instance of a class that uses refined
-types has to satisfy the constraints. This eliminates the possibility of invalid states at compile time.
+Refined types enforce constraints at the type level. That means any value used in your code must already satisfy those
+constraints — right from the moment it’s created. The result? No more invalid states sneaking in at compile time.
 
 [//]: # (@formatter:off)
 
@@ -91,25 +92,28 @@ case class User(
 
 [//]: # (@formatter:on)
 
-In the example above, we can be sure that every `User` instance will have a valid username, age, and website URL.
+In this example, every `User` instance is guaranteed to have a username that’s long enough, an age that’s positive, and
+a valid website URL.
 
-### Improved readability and reduction of boilerplate
+### Improved readability and less boilerplate
 
-This one is a bit subjective. The biggest advantage I see in refined types that set them apart from any other means of
-validation is that validation is described right next to the type. You don't have to look for the validation logic
-somewhere else in the codebase. Of course, if you inline a lengthy regex, it might be hard to read, but if used wisely,
-it can improve the readability of the code.
+This one’s a bit subjective, but here’s the biggest advantage from my point of view: with refined types, the validation
+lives right next to the type definition. You don’t have to hunt through the codebase to figure out what’s being
+checked — it’s all there in front of you. Sure, if you inline a monster regex, things can get a little messy. But when
+used with care, refined types can sometimes make your code easier to understand.
 
 ### Runtime validation utils
 
-Every refined type can be used with various methods that provide runtime validation. In `iron`, you can use:
+Refined types also come with handy runtime validation tools. In `iron`, you can pick the flavor that best suits your
+needs:
 
-- `refineUnsafe` - to throw an exception if the value doesn't satisfy the constraints
-- `refineOption` - to return `None` if the value doesn't satisfy the constraints
-- `refineEither` - to return `Left` with an error message if the value doesn't satisfy the constraints
-- `Cats` or `ZIO` integration to accumulate validation errors
+- `refineUnsafe` – throws an exception if the validation fails
+- `refineOption` – returns `None` if the validation fails
+- `refineEither` – returns a `Left` with an error message if the validation fails
+- Integration with `Cats` or `ZIO` – to accumulate multiple validation errors
 
-This gives you a lot of flexibility in how you want to handle invalid values.
+This gives you some flexibility in how you want to handle bad data — whether you prefer exceptions, `Option`s, or richer
+error handling.
 
 ## The problems
 
@@ -130,7 +134,7 @@ the [definition of a type system from Wikipedia](https://en.wikipedia.org/wiki/T
 
 > A type system dictates the operations that can be performed on a term. For variables, the type system determines the
 > allowed values of that term.
-{: .prompt-info }
+> {: .prompt-info }
 
 I'm not saying that's the only definition of a type system, but I think it describes the essence of it. A type system
 not only provides guarantees about the values but also determines the operations that can be performed on those values.
@@ -186,7 +190,7 @@ object ClassicUser {
 
 > Note: I'm using exceptions just for the sake of simplicity. In further sections, I'll list some alternatives that are
 > native to functional world.
-{: .prompt-info }
+> {: .prompt-info }
 
 In my opinion, at runtime, refined types are just a glorified constructors. They don't provide any additional operations
 that can be performed on the data. They just validate the instance when it's created. Even if the validation passes, we
@@ -260,7 +264,7 @@ validation of our aggregate after we apply some domain logic on it.
 > impractical. [Here](https://virtuslab.com/success-stories/car-configurator-modernization/) is an example of a domain
 > in which validation of the whole configuration was one of the main concerns because the number of parameters was so
 > huge.
-{: .prompt-info }
+> {: .prompt-info }
 
 ### Backward/forward compatibility of models
 
@@ -493,7 +497,7 @@ While it's more functional, we lost information what went wrong. We can only tel
 
 > [Here](https://medium.com/virtuslab/option-the-null-of-our-times-77f3bfd7c234) is an interesting article about
 > how `Option` can be percieved as a `null` of our times.
-{: .prompt-tip }
+> {: .prompt-tip }
 
 We can use `Either` to retain the information about the error:
 
@@ -532,7 +536,7 @@ def smartConstructorWithValidated(username: String, age: Int): ValidatedNel[User
 
 > Note: we have to help the compiler a bit by explicitly widening the exception type to `UserValidationException`,
 > otherwise `mapN` won't be able to concatenate the list of errors.
-{: .prompt-info }
+> {: .prompt-info }
 
 Of course, you can extract each validation to a separate method to make it more readable or to be able to reuse it. With
 this approach we get either a valid `User` instance or a list of all validation errors that occurred. In my opinion, in
