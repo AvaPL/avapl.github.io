@@ -8,6 +8,8 @@ media_subpath: /assets/img/2025-03-31-why-you-dont-need-refined-types-in-product
 
 [//]: # (TODO: Change "you" to "we")
 
+[//]: # (TODO: Fix prompts formatting)
+
 Scala’s ecosystem is full of examples that prove just how powerful its type system really is. You can, for
 instance, [implement the WHILE programming language using only types](https://scastie.scala-lang.org/IbyH3g4qQladbPe9rcGGzg)
 or even
@@ -292,24 +294,36 @@ should be padded with `0`.
 
 Point 1 is easy to implement. We can simply introduce a refined type with the predicate `FixedLength[4]`:
 
+[//]: # (@formatter:off)
+
 ```scala
 type IdentifierV1 = String :| FixedLength[4]
 ```
 
+[//]: # (@formatter:on)
+
 Now, let’s move on to point 2. We can use `MinLength[4]` and `MaxLength[5]` predicates:
+
+[//]: # (@formatter:off)
 
 ```scala
 type IdentifierV2 = String :| (MinLength[4] & MaxLength[5])
 ```
 
+[//]: # (@formatter:on)
+
 So far, so good. Remember, we’ve persisted `IdentifierV1` values in the database, and we need to ensure backward
 compatibility. Since a 4-character `IdentifierV1` satisfies the requirements of `IdentifierV2`, we can say the change is
 backward-compatible. We can use a value of type `IdentifierV1` as a value of type `IdentifierV2`:
+
+[//]: # (@formatter:off)
 
 ```scala
 val myIdentifierV1: IdentifierV1 = "abcd"
 val myIdentifierV2: IdentifierV2 = myIdentifierV1
 ```
+
+[//]: # (@formatter:on)
 
 Now we can run it and get... a compilation error.
 
@@ -322,24 +336,36 @@ At this point, we could try to fix it, but honestly, I can’t be bothered ¯\_(
 validation is what truly matters. If we use one of the `refine...` methods as suggested in the error, everything works
 just fine:
 
+[//]: # (@formatter:off)
+
 ```scala
 val myIdentifierV2: IdentifierV2 = myIdentifierV1.refineUnsafe // works
 ```
 
+[//]: # (@formatter:on)
+
 Now, for point 3. We can just use the `FixedLength[5]` predicate:
+
+[//]: # (@formatter:off)
 
 ```scala
 type IdentifierV3 = String :| FixedLength[5]
 ```
 
+[//]: # (@formatter:on)
+
 This change is not backward-compatible, because we previously allowed identifiers with only 4 characters. Fortunately,
 the new requirement specifies how we can transform old identifiers into the new format: by padding them with `0`. But
 how do we achieve this? Well, once again, we perform the transformation at runtime:
+
+[//]: # (@formatter:off)
 
 ```scala
 val myIdentifierV2: IdentifierV2 = "abcd"
 val myIdentifierV3: IdentifierV3 = myIdentifierV2.padTo(5, '0').refineUnsafe
 ```
+
+[//]: # (@formatter:on)
 
 Refined types don’t help us with this transformation. In fact, they don’t differ from a regular transformation we would
 apply manually between models. We’d still need to write a few tests to ensure that the transformation works as expected.
@@ -351,17 +377,19 @@ they affect our application.
 
 ### Compatibility with libraries
 
-Another caveat is the support of libraries. I think it's quite obvious that not every library that we use will have
-support for refined types. For instance, [avro4s supports refined](https://github.com/sksamuel/avro4s#refined-support)
-but [iron doesn't support avro4s](https://github.com/Iltotore/iron/issues/215). Of course, I don't want to say that
-refined types are the culprit here. It's in the nature of many libraries in the ecosystem. However, because we're
-talking about types here, it's quite cumbersome to write all the boilerplate, e.g. Avro codecs, yourself when you have
-lots of models in your domain. You wouldn't have that problem if you used regular types. Again, we care about runtime
-transformations so runtime validation on regular types doesn't differ that much from refined types with bindings for
-other libraries.
+Another caveat is library support. I think it's quite obvious that not every library we use will have support for
+refined types. For example, [avro4s supports refined](https://github.com/sksamuel/avro4s#refined-support),
+but [iron doesn’t support avro4s](https://github.com/Iltotore/iron/issues/215). Of course, I’m not saying that refined
+types are the cause of this issue — it’s a common challenge with many libraries in the ecosystem. However, when dealing
+with types, it becomes cumbersome to write all the boilerplate, such as Avro codecs, manually, especially when you have
+many models in your domain.
 
-Another aspect worth highlighting are how those bindings for libraries work. Let's look at `iron-circe` integration for
-decoding `RefinedUser` defined above:
+If you were using regular types, you wouldn’t face this problem. Once again, because we care about runtime
+transformations, the difference in runtime validation between regular types and refined types with external library
+bindings isn’t significant.
+
+Another aspect worth highlighting is how the bindings for libraries work. Let's look at the `iron-circe` integration for
+decoding the `RefinedUser` defined above:
 
 [//]: # (@formatter:off)
 
@@ -379,13 +407,13 @@ val invalidUser = RefinedUser.fromJson("""{"username": "Jo", "age": -100}""")
 
 [//]: # (@formatter:on)
 
-For valid user, we just get a `RefinedUser` instance. For invalid user, we get a `io.circe.DecodingFailure`. Great,
-isn't it? Well, in my opinion, it isn't. `io.circe.DecodingFailure` is a very generic exception. If you wanted to
-introduce error handling based on it, e.g. display custom messages, introduce fallbacks, the only way to discover what
-went wrong is by inspecting the error message. This is not what functional programming is praised for - we love not only
-types in our models, we love types of the exceptions.
+For a valid user, we simply get a `RefinedUser` instance. For an invalid user, we get a `io.circe.DecodingFailure`.
+Great, right? Well, in my opinion, not quite. `io.circe.DecodingFailure` is a very generic exception. If you wanted to
+implement error handling, such as displaying custom messages or introducing fallbacks, the only way to determine what
+went wrong is by inspecting the error message. This isn’t exactly what functional programming is praised for — we not
+only love types in our models, but also we love types of exceptions.
 
-What would happen if we implemented it for `ClassicUser`? As you might have guessed, full flexibility:
+What would happen if we implemented this for a `ClassicUser`? As you might have guessed, we get full flexibility:
 
 [//]: # (@formatter:off)
 
@@ -407,16 +435,18 @@ val invalidUser = ClassicUser.fromJson("""{"username": "Jo", "age": -100}""")
 
 [//]: # (@formatter:on)
 
-Of course, for simplicity, I mixed exceptions with an `Either` here. However, even despite that odd mixture, another
-benefit is revealed. We separate the domain exceptions (which we could potentially handle) from errors from `circe`
-decoders (which are probably irrecoverable). Another point for the classic approach.
+Of course, for simplicity, I’ve mixed exceptions with an `Either` here. However, even despite this odd mixture, another
+benefit comes to light. We can separate domain-specific exceptions (which we can potentially handle) from errors that
+arise from `circe` decoders (which are probably irrecoverable). Another point in favor of the classic approach.
 
-The last thing about libraries interoperability that I want to mention is `chimney` and `ducktape`. Both libraries are
-widely used to transform data between models e.g. domain to database, API to domain, etc. They both provide a lot of
-value by reducing the boilerplate significantly. Unfortunately, if both the source and target models use refined types,
-the transformation is not seamless. You have to define the transformers manually, similarly as you'd do without using
-refined types. However, I found one positive aspect - if you transform a refined type to a regular type, it works
-without any boilerplate in both `chimney` and `ducktape`. Here's an example for `chimney`:
+The last point about library interoperability I want to touch on concerns the use of `chimney` and `ducktape`. Both
+libraries are widely used to transform data between models, such as from domain to database or API to domain. They
+provide significant value by reducing boilerplate code. Unfortunately, if both the source and target models use refined
+types, the transformation process isn't seamless. You need to define the transformers manually, similar to how you'd do
+it without using refined types.
+
+However, I did find a positive aspect — if you transform a refined type to a regular type, it works without any
+boilerplate in both `chimney` and `ducktape`. Here’s an example using `chimney`:
 
 [//]: # (@formatter:off)
 
@@ -430,7 +460,8 @@ val databaseUser = refinedUser.transformInto[DatabaseUser] // or .to[...] for du
 
 [//]: # (@formatter:on)
 
-This can be handy when have a strict model (e.g. for the domain) and a more permissive one (e.g. for database).
+This can be quite handy when you have a strict model (e.g., for the domain) and a more permissive one (e.g., for the
+database).
 
 ## Alternatives
 
