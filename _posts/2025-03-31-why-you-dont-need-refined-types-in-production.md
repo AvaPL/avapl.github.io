@@ -117,47 +117,50 @@ error handling.
 
 ## The problems
 
-It's not all sunshine and rainbows, though. I'd say that the problems with refined types outweigh the benefits in the
-long run. Here are some of the pitfalls you may see if you get distracted by shiny.
+It’s not all sunshine and rainbows. In my experience, the drawbacks of refined types tend to outweigh the benefits over
+time. Here are some of the pitfalls you may encounter if you get distracted by shiny.
 
 ### Validations are mostly needed during runtime
 
-When I read documentation or articles about refined types, I often see examples that hail their compile-time validation
-as the main benefit. The reality is that most often our applications are driven by the dreaded side effects. This could
-be user input, database queries, or API calls. In these cases, the validation is needed at runtime, not compile time.
-The majority of developer-written instances are created in the test code, where we want to validate our code anyway, so
-we assume that the input is valid, at least at the type level.
+Articles, blog posts, and docs praise refined types for their compile-time validation. And sure, that’s neat in theory.
+But in practice? Most of our applications revolve around messy, real-world side effects — user input, database records,
+API responses. All of these require *runtime* validation, not compile-time checks.
 
-You may say: "Okay, but if the validations are needed mostly at runtime, why not just drop the types completely and use
-JavaScript?". Let's see a fragment of
-the [definition of a type system from Wikipedia](https://en.wikipedia.org/wiki/Type_system):
+The majority of developer-created values in a production-grade application live in test code, where we’re assuming valid
+input anyway. So the compile-time constraints don’t do much heavy lifting there.
+
+You might be thinking: *“Okay, but if it all comes down to runtime anyway, why not just toss types altogether and go
+full JavaScript?”* Fair question. But here’s a snippet
+from [Wikipedia’s definition of a type system](https://en.wikipedia.org/wiki/Type_system):
 
 > A type system dictates the operations that can be performed on a term. For variables, the type system determines the
 > allowed values of that term.
-> {: .prompt-info }
+{: .prompt-info }
 
-I'm not saying that's the only definition of a type system, but I think it describes the essence of it. A type system
-not only provides guarantees about the values but also determines the operations that can be performed on those values.
-From my point of view, the operations are the most important part of the type system. At the end of the day, our
-applications are designed to manipulate data that we assume is valid.
+That’s not the only way to define a type system, but I think it captures the heart of it. A good type system isn’t just
+about what values are allowed — it’s about what operations make sense on those values. And in my view, *that’s* the real
+value. At the end of the day, our applications are designed to *do things* with valid data. The type system helps ensure
+we’re doing those things safely and correctly.
 
 Here are some examples of what I mean:
 
-- When I represent a URL, I want to be able to extract the protocol from it,
-- When I represent a phone number, I want to be able to determine if it's a mobile or landline number,
-- When I represent a temperature, I want to be able to convert it to different units.
+- If I’m working with a URL, I want to be able to extract the protocol from it.
+- If I have a phone number, I want to be able to tell whether it’s a mobile or a landline.
+- If I’m dealing with a temperature, I want to have options to convert it between different units.
 
-All these operations require some assumption about the structure of the data. The domain logic for them has to be in
-some way encapsulated in the classes used to represent it. What is more, the operations may also require some validation
-after the result is calculated. For example, I can invent my own temperature scale that represents only temperatures
-above the boiling point of water. In this case, not every value will be convertible to a different unit.
+Each of these operations relies on certain assumptions about the structure of the data. That logic has to live
+somewhere, and ideally, it’s encapsulated in the class representing the data.
 
-Operations happen at runtime and only because we assume that the data we execute them on is valid, we get the safety
-guarantees. The thing is that validity of the data is also a runtime concern. We cannot be sure that the data we receive
-from external sources is valid. Therefore, we can assume that creating an instance of a class is just another operation,
-which may fail.
+And it doesn’t stop at structure. Sometimes, operations require validation *after* doing their thing. Say I invent my
+own temperature scale that only supports values above the boiling point of water. In this case, not every temperature
+can be converted to that scale.
 
-Here's a comparison between a `RefinedUser` built with refined types and a `ClassicUser` built with a constructor:
+These operations happen at runtime. And the only reason they feel safe is because we *assume* the data we’re working
+with is valid. The thing is: data validity is also a runtime concern. We can’t trust that values coming from users,
+APIs, or databases are always correct. Therefore, we can say creating an instance of a class is just another operation.
+And like any operation, it can fail.
+
+Here’s a comparison between a `RefinedUser` built with refined types and a `ClassicUser` built with a constructor:
 
 [//]: # (@formatter:off)
 
@@ -188,20 +191,19 @@ object ClassicUser {
 
 [//]: # (@formatter:on)
 
-> Note: I'm using exceptions just for the sake of simplicity. In further sections, I'll list some alternatives that are
-> native to functional world.
-> {: .prompt-info }
+> Note: I’m using exceptions here just to keep things simple. In later sections, I’ll go over some more functional
+> alternatives.  
+{: .prompt-info }
 
-In my opinion, at runtime, refined types are just a glorified constructors. They don't provide any additional operations
-that can be performed on the data. They just validate the instance when it's created. Even if the validation passes, we
-still have to write the logic to manipulate the data, even though we assume it has a well-defined structure. What is
-more, we still have to test out domain logic as the refined type doesn't prevent us from performing invalid operations
-as in `secondInitial` example above.
+At runtime, refined types feel like glorified constructors. They don’t offer any extra operations you can perform on the
+data — they just validate the input when an instance is created. And once the object exists, you're on your own. You
+still have to implement the logic that actually *uses* the data, assuming it’s valid. And you still have to write tests
+for that logic — because as shown in the `secondInitial` example, refined types won't stop you from introducing bugs.
 
-We can also see the first inflexibility of refined types validation. In case of `ClassicUser`, we could throw any error
-type with any message. For instance, we could throw a custom `EmptyStringError` when the string is empty,
-and `StringTooShortError` when it's too short. With refined types, we always get an `IllegalArgumentException` with a
-predefined message that the predicate is not satisfied.
+This is also where we start to see some limitations. With `ClassicUser`, you can throw any exception type, with a clear
+and specific message. For instance, you might throw custom `EmptyStringError` or a `StringTooShortError`. With refined
+types? You're stuck with a generic `IllegalArgumentException` and predefined message. Of course, you can try to catch it
+and map it to your own exception, but that’s just more boilerplate, which is exactly what we’re trying to avoid.
 
 ### Fields depending on other fields
 
