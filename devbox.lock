@@ -1,0 +1,73 @@
+{
+  "lockfile_version": "1",
+  "packages": {
+    "github:NixOS/nixpkgs/nixpkgs-unstable": {
+      "resolved": "github:NixOS/nixpkgs/2bfc080955153be0be56724be6fa5477b4eefabb?lastModified=1743689281&narHash=sha256-y7Hg5lwWhEOgflEHRfzSH96BOt26LaYfrYWzZ%2BVoVdg%3D"
+    },
+    "ruby@3.3": {
+      "last_modified": "2025-03-11T17:52:14Z",
+      "plugin_version": "0.0.2",
+      "resolved": "github:NixOS/nixpkgs/0d534853a55b5d02a4ababa1d71921ce8f0aee4c#ruby",
+      "source": "devbox-search",
+      "version": "3.3.6",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/993z2m53gyiasq56hb2mqprvx8nssza7-ruby-3.3.6",
+              "default": true
+            },
+            {
+              "name": "devdoc",
+              "path": "/nix/store/jd5f07rrjz0x0330cfx68gvw9lrzjz8w-ruby-3.3.6-devdoc"
+            }
+          ],
+          "store_path": "/nix/store/993z2m53gyiasq56hb2mqprvx8nssza7-ruby-3.3.6"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/dcdpq801xdnzq2ylhmyj8l8vyzdqgigf-ruby-3.3.6",
+              "default": true
+            },
+            {
+              "name": "devdoc",
+              "path": "/nix/store/mph41qfkqcxlwfphpvjqbq13x2kkrldm-ruby-3.3.6-devdoc"
+            }
+          ],
+          "store_path": "/nix/store/dcdpq801xdnzq2ylhmyj8l8vyzdqgigf-ruby-3.3.6"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/0y1g21irbd266b2z0nipi7rcbsy2xd78-ruby-3.3.6",
+              "default": true
+            },
+            {
+              "name": "devdoc",
+              "path": "/nix/store/gx7smzmip5y1hygwrf31qc6b2p9rzbwl-ruby-3.3.6-devdoc"
+            }
+          ],
+          "store_path": "/nix/store/0y1g21irbd266b2z0nipi7rcbsy2xd78-ruby-3.3.6"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/xk96lh29cjq0ak8zf89as6yk3wj7zh0x-ruby-3.3.6",
+              "default": true
+            },
+            {
+              "name": "devdoc",
+              "path": "/nix/store/2h68kzh5bv60l4bq814r0my8brk93lcg-ruby-3.3.6-devdoc"
+            }
+          ],
+          "store_path": "/nix/store/xk96lh29cjq0ak8zf89as6yk3wj7zh0x-ruby-3.3.6"
+        }
+      }
+    }
+  }
+}
