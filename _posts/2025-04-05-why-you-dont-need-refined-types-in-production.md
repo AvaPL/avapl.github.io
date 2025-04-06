@@ -442,7 +442,7 @@ The last point about library interoperability I want to touch on concerns the us
 libraries are widely used to transform data between models, such as from domain to database or API to domain. They
 provide significant value by reducing boilerplate code. Unfortunately, if both the source and target models use
 different refined types, the transformation process isn't seamless. Even when the transformation makes sense (e.g., from
-`String :| FixedLength[3]` to `String :| MinLenghth[3]`) we need to define the transformers manually, similar to how
+`String :| FixedLength[3]` to `String :| MinLength[3]`) we need to define the transformers manually, similar to how
 we'd do it without using refined types.
 
 However, I did find a positive aspect — if we transform a refined type to a regular type, it works without any
