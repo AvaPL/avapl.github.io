@@ -2,7 +2,7 @@
 title: A few testing anti-patterns
 date: 2025-09-30 12:00:00 +0000
 categories: [ Blog ]
-tags: [ scala, clean code, testing, tips ]     # TAG names should always be lowercase
+tags: [ clean code, testing, tips ]     # TAG names should always be lowercase
 media_subpath: /assets/img/2025-09-30-a-few-testing-anti-patterns/
 ---
 
@@ -21,6 +21,8 @@ refactor them along the way as the new structures emerge. This makes TDD illusor
 > bug and isolate it in a unit test, it acts as a perfect verification whether the fix actually works. It also makes the
 > code review much easier - you already have a proof that your solution is valid.
 {: .prompt-tip }
+
+[//]: # (TODO: Add an image)
 
 How many times have you encountered a situation when you introduced
 a simple change and a whole host of tests fell apart? First of all, if you were in that situation, that might be a good
@@ -45,9 +47,108 @@ for you and your teammates. If you are already committed to some of the concepts
 hard to get away from them. For this reason, you may either aim to avoid them from the beginning, or incrementally
 migrate the tests as your codebase progresses.
 
-## Shared given
+## A few principles of my testing style
 
-## Shared assertions
+Before we begin with the main content of this post, let me introduce you to my testing style. I assume that every
+person or team has their own rules and I'd like to ensure that we're on the same page.
+
+### given/when/then
+
+First of all, I always try to structure my tests so that they follow given/when/then structure. That doesn't always mean
+that I introduce explicit comments that separate the sections from each other, but I tend to at least leave a whitespace
+between the sections. The simplest example would be something like that:
+
+[//]: # (@formatter:off)
+
+```scala
+val square = Square(width = 5)
+
+val area = calculateArea(square)
+
+assert(area == 25)
+```
+
+[//]: # (@formatter:on)
+
+> The examples will be in Scala, but the whole post is language-agnostic. The presented concepts are universal and can
+> be applied in any language or framework, unless there's a technical limitation that prevents it.
+{: .prompt-info }
+
+Sometimes I split the sections into subsections, especially when there are stubs involved. For example:
+
+[//]: # (@formatter:off)
+
+```scala
+// GIVEN an email client and push notification service
+val emailClient = stub[EmailClient]
+val pushNotificationService = stub[PushNotificationService]
+(emailClient.send _).returns(_ => ())
+(pushNotificationService.send _).returns(_ => ())
+
+// AND a notification service
+val notificationService = new NotificationService(emailClient, pushNotificationService)
+
+// AND userId, title, and message
+val userId = UUID.fromString("00000000-0000-0000-0000-000000000001")
+val title = "Test title"
+val message = "Test message"
+
+// WHEN NotificationService#send is called
+notificationService.send(userId, title, message)
+
+// THEN the EmailClient#send and PushNotificationService#send are called once each
+assert((emailClient.send _).times == 1)
+assert((pushNotificationService.send _).times == 1)
+```
+
+[//]: # (@formatter:on)
+
+Sometimes I move the stubs behavior into the "when" section:
+
+[//]: # (@formatter:off)
+
+```scala
+...
+
+// WHEN the email client and push notification service can send notifications
+(emailClient.send _).returns(_ => ())
+(pushNotificationService.send _).returns(_ => ())
+
+// AND NotificationService#send is called
+notificationService.send(userId, title, message)
+
+...
+```
+
+[//]: # (@formatter:on)
+
+Putting the behavior in "when" also makes sense if you use mocks instead - the expectations are then separated from the 
+"given" section, which also makes the tests easier to read. The disadvantage of using mocks is that you usually lose a 
+part of (or the whole) "then" section, as the expectations are already expressed in the "when". I tend to decide what to
+use case by case.
+
+> See [this section](https://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs) of Martin 
+> Fowler's "Mocks Aren't Stubs" to get more information about the differences between stubs and mocks.
+{: .prompt-tip }
+
+[//]: # (TODO: Explain how the tests can be described)
+
+I stick to the same convention in the description of the tests. 
+
+### Scope of the tests
+
+### Mocks and stubs
+
+### Parallelism
+
+## Shared "given"
+
+Let me start with an anti-pattern that actually motivated me to write this post. I've seen it far too many times, and it
+has always been a hindrance. Shared "given" is a very simple thing - you just share the test data among tests within one
+suite or among multiple suites. Here's an example of a shared "given" for a test suite that we'll use throughout this
+section:
+
+## Shared "then"
 
 ## In-memory adapters
 
