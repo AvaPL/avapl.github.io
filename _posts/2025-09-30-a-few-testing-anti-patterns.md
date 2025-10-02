@@ -20,7 +20,7 @@ refactor them along the way as the new structures emerge. This makes TDD illusor
 > While I find TDD impractical for developing new features, it shines for bugfixing. If you are able to reproduce a
 > bug and isolate it in a unit test, it acts as a perfect verification whether the fix actually works. It also makes the
 > code review much easier - you already have a proof that your solution is valid.
-{: .prompt-tip }
+> {: .prompt-tip }
 
 [//]: # (TODO: Add an image)
 
@@ -35,7 +35,7 @@ to the implementation details of the test, then it's a sign that the test is not
 
 > An example of such an implementation detail might be an assertion that relies on the order of the elements in the
 > result when actually the order doesn't matter.
-{: .prompt-info }
+> {: .prompt-info }
 
 That leads us to another aspect of testing, which is editing the tests. It's not always that easy to make the tests work
 after even a simple change is introduced. Sometimes, the change is just a one-liner that requires you to modify tens
@@ -164,7 +164,7 @@ a single class. There are two main reasons for it:
 1. Smaller test suites are easier to reason about.
 1. 1:1 mapping between a class and a test suite is easier to maintain. I prefer to have a single `FooTest` for `Foo`
    instead of a whole host of suites combining multiple classes, that I eventually forget about or struggle to find as
-   it's in a different package.
+   they are in different packages.
 
 I usually keep the same convention for unit tests and integration tests.
 
@@ -173,7 +173,7 @@ I usually keep the same convention for unit tests and integration tests.
 > [The Confusion About Testing Terminology](https://martinfowler.com/articles/practical-test-pyramid.html#TheConfusionAboutTestingTerminology).
 {: prompt-tip }
 
-Because I usually stick to using interfaces as class dependencies, I hardly ever have to include non-stubbed versions 
+Because I usually stick to using interfaces as class dependencies, I hardly ever have to include non-stubbed versions
 of other classes into my suites. This makes testing a lot easier, as I can test the behavior of the class under test,
 and mock/stub the other ones. This significantly reduces the scope of the tests.
 
