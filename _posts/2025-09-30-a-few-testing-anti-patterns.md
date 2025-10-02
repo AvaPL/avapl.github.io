@@ -88,15 +88,15 @@ val pushNotificationService = stub[PushNotificationService]
 // AND a notification service
 val notificationService = new NotificationService(emailClient, pushNotificationService)
 
-// AND userId, title, and message
+// AND user ID, notification title, and notification message
 val userId = UUID.fromString("00000000-0000-0000-0000-000000000001")
 val title = "Test title"
 val message = "Test message"
 
-// WHEN NotificationService#send is called
+// WHEN a notification is sent
 notificationService.send(userId, title, message)
 
-// THEN the EmailClient#send and PushNotificationService#send are called once each
+// THEN an email and a push notification are sent
 assert((emailClient.send _).times == 1)
 assert((pushNotificationService.send _).times == 1)
 ```
@@ -114,7 +114,7 @@ Sometimes I move the stubs behavior into the "when" section:
 (emailClient.send _).returns(_ => ())
 (pushNotificationService.send _).returns(_ => ())
 
-// AND NotificationService#send is called
+// AND a notification is sent
 notificationService.send(userId, title, message)
 
 ...
@@ -122,20 +122,60 @@ notificationService.send(userId, title, message)
 
 [//]: # (@formatter:on)
 
-Putting the behavior in "when" also makes sense if you use mocks instead - the expectations are then separated from the 
-"given" section, which also makes the tests easier to read. The disadvantage of using mocks is that you usually lose a 
+Putting the behavior in "when" also makes sense if you use mocks instead - the expectations are then separated from the
+"given" section, which also makes the tests easier to read. The disadvantage of using mocks is that you usually lose a
 part of (or the whole) "then" section, as the expectations are already expressed in the "when". I tend to decide what to
 use case by case.
 
-> See [this section](https://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs) of Martin 
+> See [this section](https://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs) of Martin
 > Fowler's "Mocks Aren't Stubs" to get more information about the differences between stubs and mocks.
 {: .prompt-tip }
 
-[//]: # (TODO: Explain how the tests can be described)
+I stick to the same convention in the description of the tests. Depending on the framework, my test may look like this:
 
-I stick to the same convention in the description of the tests. 
+[//]: # (@formatter:off)
+
+```scala
+test(
+  """GIVEN a notification
+    | WHEN the notification is sent
+    | THEN an email and a push notification are sent
+    |""".stripMargin
+) {
+  ...
+}
+```
+
+[//]: # (@formatter:on)
+
+In the description, I tend to omit the technical details if they are irrelevant for the test. In the example description
+above, I didn't include the fact that we need 3 services to fulfill this task and focused on the behavior.
+
+I quite often see tests that have descriptions like "happy path" or "should return a correct result". In my opinion,
+they lack any information about the tested behavior. The description is the most flexible place of our tests, which
+allows us to explain our intention the best way we can, using human language. Make use of it! You can treat laconic
+descriptions as the first anti-pattern 😁
 
 ### Scope of the tests
+
+The next thing that I'd like to explain is the scope of the tests. I usually try to reduce the scope of my tests to
+a single class. There are two main reasons for it:
+
+1. Smaller test suites are easier to reason about.
+1. 1:1 mapping between a class and a test suite is easier to maintain. I prefer to have a single `FooTest` for `Foo`
+   instead of a whole host of suites combining multiple classes, that I eventually forget about or struggle to find as
+   it's in a different package.
+
+I usually keep the same convention for unit tests and integration tests.
+
+> By "integration tests", I mean a test that interacts with one external component. For instance, that may be a test
+> of a repository integrating with a database. See:
+> [The Confusion About Testing Terminology](https://martinfowler.com/articles/practical-test-pyramid.html#TheConfusionAboutTestingTerminology).
+{: prompt-tip }
+
+Because I usually stick to using interfaces as class dependencies, I hardly ever have to include non-stubbed versions 
+of other classes into my suites. This makes testing a lot easier, as I can test the behavior of the class under test,
+and mock/stub the other ones. This significantly reduces the scope of the tests.
 
 ### Mocks and stubs
 
