@@ -179,7 +179,21 @@ and mock/stub the other ones. This significantly reduces the scope of the tests.
 
 ### Mocks and stubs
 
+This part might be controversial, but I really frequently use both mocks and stubs. That's not because they are a 
+perfect means of representing the behavior, but because they are just easy to use. Instead of having to implement
+a whole interface of methods, values tracking the arguments they are called with, counters of method calls etc.,
+I can just leverage a mocking framework that will set it up for me. I won't dive deeper into it, I just wanted to make
+you aware of it as [In-memory adapters](#in-memory-adapters) I describe below is often a substitute for mocks/stubs.
+
 ### Parallelism
+
+I have to admit that the codebases I usually work with commercially aren't parallelism-friendly. When it comes to unit
+tests, teams usually succeed. When it comes to integration tests, or other layers of the testing pyramid, I usually see
+sequential execution. That's a huge setback to the team velocity in a mature system. Lack of parallelism means that we 
+have to wait longer for the tests to run locally and for the CI pipeline to finish. So, my principle is that I try to 
+aim for enabling parallel execution, unfortunately with varying results. Sometimes the codebase is just not flexible
+enough to achieve it without a major refactor. But worry not! Elimination of 
+[Non-isolated shared resources](#non-isolated-shared-resources) described below will help you address that.
 
 ## Shared "given"
 
