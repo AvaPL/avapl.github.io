@@ -65,7 +65,7 @@ val square = Square(width = 5)
 
 val area = calculateArea(square)
 
-assert(area == 25)
+assert(area === 25)
 ```
 
 [//]: # (@formatter:on)
@@ -97,8 +97,8 @@ val message = "Test message"
 notificationService.send(userId, title, message)
 
 // THEN an email and a push notification are sent
-assert((emailClient.send _).times == 1)
-assert((pushNotificationService.send _).times == 1)
+assert((emailClient.send _).times === 1)
+assert((pushNotificationService.send _).times === 1)
 ```
 
 [//]: # (@formatter:on)
@@ -201,6 +201,46 @@ Let me start with an anti-pattern that actually motivated me to write this post.
 has always been a hindrance. Shared "given" is a very simple thing - you just share the test data among tests within one
 suite or among multiple suites. Here's an example of a shared "given" for a test suite that we'll use throughout this
 section:
+
+```scala
+private val testMovieRatings = List(
+  MovieRating(userId = "1", movieId = "111", rating = 5),
+  MovieRating(userId = "2", movieId = "111", rating = 4),
+  MovieRating(userId = "2", movieId = "222", rating = 2)
+  // tens (or hundreds) of other instances ...
+)
+
+private val movieRatingService = new MovieRatingService
+
+override protected def beforeAll(): Unit = {
+  movieRatingService.addAll(testMovieRatings)
+  super.beforeAll()
+}
+```
+
+Shared "given" above has the following characteristics:
+1. Shared test data in `testMovieRatings`.
+1. `movieRatingService` that is a shared instance of the class under test.
+1. `beforeAll` method that initializes the shared instance with the shared test data.
+
+Of course, this anti-pattern often varies. The above structure is only one of many that I saw. Other common elements
+I often see are:
+- Separate classes only to store the shared test data
+- Utility methods calls like `setupTestData()`, in either `beforeAll`, `beforeEach`, or on the test level
+- Utility mixin classes, which do the setup for you, for example `class MyTest extends WithTestData`
+
+Probably there's more to it, but you for sure get the idea - we share the test data between individual tests or whole 
+test suites.
+
+### Problem 1: Describing "given"
+
+### Problem 2: Describing "then"
+
+### Problem 3: Creating new test cases
+
+### What to use instead?
+
+[//]: # (TODO: Mention DRY)
 
 ## Shared "then"
 
