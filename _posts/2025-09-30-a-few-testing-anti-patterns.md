@@ -179,7 +179,7 @@ and mock/stub the other ones. This significantly reduces the scope of the tests.
 
 ### Mocks and stubs
 
-This part might be controversial, but I really frequently use both mocks and stubs. That's not because they are a 
+This part might be controversial, but I really frequently use both mocks and stubs. That's not because they are a
 perfect means of representing the behavior, but because they are just easy to use. Instead of having to implement
 a whole interface of methods, values tracking the arguments they are called with, counters of method calls etc.,
 I can just leverage a mocking framework that will set it up for me. I won't dive deeper into it, I just wanted to make
@@ -189,10 +189,10 @@ you aware of it as [In-memory adapters](#in-memory-adapters) I describe below is
 
 I have to admit that the codebases I usually work with commercially aren't parallelism-friendly. When it comes to unit
 tests, teams usually succeed. When it comes to integration tests, or other layers of the testing pyramid, I usually see
-sequential execution. That's a huge setback to the team velocity in a mature system. Lack of parallelism means that we 
-have to wait longer for the tests to run locally and for the CI pipeline to finish. So, my principle is that I try to 
+sequential execution. That's a huge setback to the team velocity in a mature system. Lack of parallelism means that we
+have to wait longer for the tests to run locally and for the CI pipeline to finish. So, my principle is that I try to
 aim for enabling parallel execution, unfortunately with varying results. Sometimes the codebase is just not flexible
-enough to achieve it without a major refactor. But worry not! Elimination of 
+enough to achieve it without a major refactor. But worry not! Elimination of
 [Non-isolated shared resources](#non-isolated-shared-resources) described below will help you address that.
 
 ## Shared "given"
@@ -201,6 +201,8 @@ Let me start with an anti-pattern that actually motivated me to write this post.
 has always been a hindrance. Shared "given" is a very simple thing - you just share the test data among tests within one
 suite or among multiple suites. Here's an example of a shared "given" for a test suite that we'll use throughout this
 section:
+
+[//]: # (@formatter:off)
 
 ```scala
 private val testMovieRatings = List(
@@ -218,25 +220,94 @@ override protected def beforeAll(): Unit = {
 }
 ```
 
+[//]: # (@formatter:on)
+
 Shared "given" above has the following characteristics:
+
 1. Shared test data in `testMovieRatings`.
 1. `movieRatingService` that is a shared instance of the class under test.
 1. `beforeAll` method that initializes the shared instance with the shared test data.
 
 Of course, this anti-pattern often varies. The above structure is only one of many that I saw. Other common elements
 I often see are:
+
 - Separate classes only to store the shared test data
 - Utility methods calls like `setupTestData()`, in either `beforeAll`, `beforeEach`, or on the test level
 - Utility mixin classes, which do the setup for you, for example `class MyTest extends WithTestData`
 
-Probably there's more to it, but you for sure get the idea - we share the test data between individual tests or whole 
+Probably there's more to it, but you for sure get the idea - we share the test data between individual tests or whole
 test suites.
+
+Why do people use it? At first, it just looks convenient. You don't have to repeat the same test data over and over
+again. What is more, if your class has a lot of parameters, there's no need to define it in every test. However, over
+time, the downsides start showing up.
 
 ### Problem 1: Describing "given"
 
+The first issue appears quite quickly, when you have to describe the tests. If you share the test data, you cannot
+easily describe what exactly each test is fed with. You may try to use something like "GIVEN a list of movie ratings",
+but that's quite shallow description. Usually, we want to explain every test clearly, e.g. "GIVEN movie ratings from
+multiple users" or "GIVEN multiple positive (>= 4) ratings for a single movie".
+
+Of course, you can try to just assume that the shared data is so diversified that will fulfill the requirements of
+every test, but that might quickly turn out to be either hard or impossible. We have to remember that the codebases
+evolve constantly. If multiple tests depend on shared test data, you cannot really guarantee that even a small change
+won't break their descriptions. Additionally, the tests may verify contradictory cases.
+
 ### Problem 2: Describing "then"
 
+Another consequence of shared "given" is that it actually also affects "then". How can you define the assertions if
+you cannot be sure what the input is? The workaround I often see is that the tests often rely on the fact that the
+method under test filters the data. For example:
+
+[//]: # (@formatter:off)
+
+```scala
+test(
+  """GIVEN a list of movie ratings
+    | WHEN average rating for one movie is calculated
+    | THEN correct average rating should be returned
+    |""".stripMargin
+) {
+  val movieId = "111"
+
+  val averageRating = movieRatingService.averageRatingForMovie(movieId)
+
+  assert(averageRating === 4.5)
+}
+```
+
+[//]: # (@formatter:on)
+
+There are numerous issues with the above test. Let's highlight two of them:
+
+1. As described above, the "then" is shallow, because we cannot assume anything about the input. Thus, we end up with
+   an assertion on "correct average rating", which is unclear. We always want to return correct results, don't we?
+2. To understand where the final `4.5` comes from, we have to jump to the shared test data. What is more, we have to
+   analyze it thoroughly to find all the ratings for movie with ID `111`, as they are not defined on the test level.
+
 ### Problem 3: Creating new test cases
+
+The thing that will eventually drive your team up the wall is the ability to create new test cases.
+
+Let's say that your team is developing a new feature, which will mark some ratings as originating from
+[review bombing](https://en.wikipedia.org/wiki/Review_bomb). For simplicity, let's assume that you just had to add
+a simple boolean flag `isReviewBomb` to the `MovieRating` model, which is `false` by default. Of course, to properly
+verify that business logic depending on it, you have to add new test cases, which also means new test data. Because
+a shared "given" is used, you may either edit existing instances, or add new ones to the list. Now, this is the moment
+when the frustration begins. Imagine the following scenario:
+
+1. You add a new `MovieRating` instance to the list and write a new test, and you run the whole test suite.
+1. It turns out that the new instance you've added affects the average rating in another test, making it fail.
+1. You fix the issue by altering the properties of the `MovieRating` you've added.
+1. Now, your test fails because the properties were altered, you have to adjust it.
+1. It turns out that another test relied on the total number of movie ratings. You have to either remove one of the test
+   instances, or change the definition of the failing test.
+1. And so on...
+
+It happened to me far too many times. Because the tests are interdependent on the shared test data, it makes them very 
+brittle. It's very frustrating when a simple change is introduced, but the test suites are written in a way that you 
+cannot really alter the shared test data without breaking other test suites.
 
 ### What to use instead?
 
