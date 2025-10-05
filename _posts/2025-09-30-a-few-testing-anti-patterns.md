@@ -298,11 +298,54 @@ a shared "given" is used, you may either edit existing instances, or add new one
 when the frustration begins. Imagine the following scenario:
 
 1. You add a new `MovieRating` instance to the list and write a new test, and you run the whole test suite.
+
+   [//]: # (@formatter:off)
+    
+    ```scala
+    private val testMovieRatings = List(
+      // other instances
+      MovieRating(userId = "3", movieId = "222", rating = 1, isReviewBomb = true) // <- new instance
+    )
+    ```
+
+    [//]: # (@formatter:on)
+
 1. It turns out that the new instance you've added affects the average rating in another test, making it fail.
+ 
+   [//]: # (@formatter:off)
+
+    ```scala
+    val averageRating = movieRatingService.averageRatingForMovie("222")
+
+    assert(averageRating === 1)
+    ```
+
+   [//]: # (@formatter:on)
 1. You fix the issue by altering the properties of the `MovieRating` you've added.
+
+   [//]: # (@formatter:off)
+
+    ```scala
+    MovieRating(..., movieId = "not-used-anywhere-else", ...) // <- new instance
+    ```
+
+   [//]: # (@formatter:on)
 1. Now, your test fails because the properties were altered, you have to adjust it.
 1. It turns out that another test relied on the total number of movie ratings. You have to either remove one of the test
    instances, or change the definition of the failing test.
+
+    [//]: # (@formatter:off)
+    
+    ```scala
+    // ...
+    val totalRatings = movieRatingService.countAll()
+    
+    assert(totalRatings === 15)
+    // ...
+    ```
+    
+    [//]: # (@formatter:on)
+
 1. And so on...
 
 It happened to me far too many times. Because the tests are interdependent on the shared test data, it makes them very
@@ -338,9 +381,9 @@ private lazy val anyMovieId = "111"
 
 [//]: # (@formatter:on)
 
-As you see, I also introduced zero-args methods for the IDs. This is convenient, especially when the values have to
-adhere to a concrete pattern. I tend to name those `any...`. Now, you can use the above method to construct instances
-for the test purposes.
+As you see, I also introduced zero-args methods for the IDs. This is especially convenient when the values have to
+adhere to a concrete pattern. I tend to name those `any...` to highlight that their properties may contain anything. 
+Now, you can use the above method to construct instances for the test purposes.
 
 > I recommend avoiding random values in those methods. Non-deterministic values like `UUID.randomUUID()` or
 > `Instant.now()` is often a source of confusion when it comes to debugging as the values constantly change. What is
