@@ -340,11 +340,11 @@ private lazy val anyMovieId = "111"
 
 As you see, I also introduced zero-args methods for the IDs. This is convenient, especially when the values have to
 adhere to a concrete pattern. I tend to name those `any...`. Now, you can use the above method to construct instances
-for the test purposes. 
+for the test purposes.
 
-> I recommend avoiding random values in those methods. Non-deterministic values like `UUID.randomUUID()` or 
-> `Instant.now()` is often a source of confusion when it comes to debugging as the values constantly change. What is 
-> more, it might turn out that the logic in some edge cases actually depends on the exact values used, making the tests 
+> I recommend avoiding random values in those methods. Non-deterministic values like `UUID.randomUUID()` or
+> `Instant.now()` is often a source of confusion when it comes to debugging as the values constantly change. What is
+> more, it might turn out that the logic in some edge cases actually depends on the exact values used, making the tests
 > flaky.
 { :prompt-tip }
 
@@ -375,11 +375,11 @@ test(
 
 [//]: # (@formatter:on)
 
-The test is now not only accurately described, but also the whole "given" is represented in the code. There is no 
-implicit dependency on values defined elsewhere (especially, notice `movieId` was specified explicitly despite being 
+The test is now not only accurately described, but also the whole "given" is represented in the code. There is no
+implicit dependency on values defined elsewhere (especially, notice `movieId` was specified explicitly despite being
 equal to the default value). We also conveniently skipped specifying the `userId`, as it's irrelevant in this case.
 
-Sometimes, it might also make sense to create more domain-specific factory methods like `anyPositiveMovieRating` or 
+Sometimes, it might also make sense to create more domain-specific factory methods like `anyPositiveMovieRating` or
 `anyReviewBombMovieRating`. As long as you are able to fully describe the properties of the created instance via the
 method name and its parameters, you can be sure that your test will be understood by others. Try to create methods in
 such a way that won't make the reader have to jump to their definition to understand your tests.
@@ -391,3 +391,5 @@ such a way that won't make the reader have to jump to their definition to unders
 ## Non-isolated shared resources
 
 ## Confusing math with science
+
+## Summary
