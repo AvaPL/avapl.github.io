@@ -305,13 +305,84 @@ when the frustration begins. Imagine the following scenario:
    instances, or change the definition of the failing test.
 1. And so on...
 
-It happened to me far too many times. Because the tests are interdependent on the shared test data, it makes them very 
-brittle. It's very frustrating when a simple change is introduced, but the test suites are written in a way that you 
+It happened to me far too many times. Because the tests are interdependent on the shared test data, it makes them very
+brittle. It's very frustrating when a simple change is introduced, but the test suites are written in a way that you
 cannot really alter the shared test data without breaking other test suites.
 
 ### What to use instead?
 
-[//]: # (TODO: Mention DRY)
+For me, the most important rule is not to [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) the "given". Even
+when you repeat the same instances over and over again, they serve their purpose - the tests become independent, and
+contain the only data they need to verify the described behavior. They are also much easier to read as a form of
+documentation, and equally easy to modify. It's just that simple.
+
+But what if the instances you need for testing have numerous parameters, and you need a few instances per test? Your
+"given" sections may quickly become gigantic blocks with a lot of irrelevant noise. Luckily, we can easily address that.
+All we have to do is to just create small factory methods in the test suite that will initialize parameters to
+reasonable defaults. For example, a factory method for our `MovieRating` could look like this:
+
+[//]: # (@formatter:off)
+
+```scala
+private def anyMovieRating(
+  userId: String = anyUserId,
+  movieId: String = anyMovieId,
+  rating: Int = 4,
+  isReviewBomb: Boolean = false
+) =
+  MovieRating(userId, movieId, rating, isReviewBomb)
+
+private lazy val anyUserId = "111"
+private lazy val anyMovieId = "111"
+```
+
+[//]: # (@formatter:on)
+
+As you see, I also introduced zero-args methods for the IDs. This is convenient, especially when the values have to
+adhere to a concrete pattern. I tend to name those `any...`. Now, you can use the above method to construct instances
+for the test purposes. 
+
+> I recommend avoiding random values in those methods. Non-deterministic values like `UUID.randomUUID()` or 
+> `Instant.now()` is often a source of confusion when it comes to debugging as the values constantly change. What is 
+> more, it might turn out that the logic in some edge cases actually depends on the exact values used, making the tests 
+> flaky.
+{ :prompt-tip }
+
+Let's fix the test which verifies average rating calculation:
+
+[//]: # (@formatter:off)
+
+```scala
+test(
+  """GIVEN ratings 4 and 5 for a movie
+    | WHEN average rating for that movie is calculated
+    | THEN the calculated average rating is 4.5
+    |""".stripMargin
+) {
+  val movieId = anyMovieId
+  val ratings = List(
+    anyMovieRating(movieId = movieId, rating = 4),
+    anyMovieRating(movieId = movieId, rating = 5)
+  )
+  val movieRatingService = new MovieRatingService
+  movieRatingService.addAll(ratings)
+
+  val averageRating = movieRatingService.averageRatingForMovie(movieId)
+
+  assert(averageRating === 4.5)
+}
+```
+
+[//]: # (@formatter:on)
+
+The test is now not only accurately described, but also the whole "given" is represented in the code. There is no 
+implicit dependency on values defined elsewhere (especially, notice `movieId` was specified explicitly despite being 
+equal to the default value). We also conveniently skipped specifying the `userId`, as it's irrelevant in this case.
+
+Sometimes, it might also make sense to create more domain-specific factory methods like `anyPositiveMovieRating` or 
+`anyReviewBombMovieRating`. As long as you are able to fully describe the properties of the created instance via the
+method name and its parameters, you can be sure that your test will be understood by others. Try to create methods in
+such a way that won't make the reader have to jump to their definition to understand your tests.
 
 ## Shared "then"
 
