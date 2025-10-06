@@ -311,7 +311,7 @@ when the frustration begins. Imagine the following scenario:
     [//]: # (@formatter:on)
 
 1. It turns out that the new instance you've added affects the average rating in another test, making it fail.
- 
+
    [//]: # (@formatter:off)
 
     ```scala
@@ -334,7 +334,7 @@ when the frustration begins. Imagine the following scenario:
 1. It turns out that another test relied on the total number of movie ratings. You have to either remove one of the test
    instances, or change the definition of the failing test.
 
-    [//]: # (@formatter:off)
+   [//]: # (@formatter:off)
     
     ```scala
     // ...
@@ -382,7 +382,7 @@ private lazy val anyMovieId = "111"
 [//]: # (@formatter:on)
 
 As you see, I also introduced zero-args methods for the IDs. This is especially convenient when the values have to
-adhere to a concrete pattern. I tend to name those `any...` to highlight that their properties may contain anything. 
+adhere to a concrete pattern. I tend to name those `any...` to highlight that their properties may contain anything.
 Now, you can use the above method to construct instances for the test purposes.
 
 > I recommend avoiding random values in those methods. Non-deterministic values like `UUID.randomUUID()` or
@@ -429,7 +429,57 @@ such a way that won't make the reader have to jump to their definition to unders
 
 ## Shared "then"
 
-## In-memory adapters
+[//]: # (TODO)
+
+## Simulating third-party services
+
+"Mock only yourself, because mocking others is rude" - this short maxim, although a bit silly, captures the essential
+rule of thumb I want to convey here. The adapters in our code more often than not interact with the external world
+through some kind of clients, JDBC drivers, messaging protocols, and so on. Most of the interfaces for those complicated
+integrations are non-trivial, which makes people try to apply various shenanigans to be able to unit test the classes
+using them. Some succeed by creating their own in-memory implementations, others eventually find open-source projects
+that provide them. You can probably imagine how hard replicating the actual behavior of a constantly-changing project
+such as Kafka or S3 is, yet people still do it 
+[[1](https://github.com/mguenther/kafka-junit)][[2](https://github.com/findify/s3mock)].
+
+There is another very common subset of test classes that I'd like to also include here - in-memory databases. The most
+common example that comes to mind is H2. Another is a plethora of in-memory databases written by hand by implementing
+an interface using a built-in collection like a map. For example:
+
+```scala
+trait UserRepository {
+
+  def addUser(user: User): Unit
+
+  // ...
+}
+
+class InMemoryUserRepository extends UserRepository {
+
+  private val users = mutable.Map.empty[UserId, User]
+
+  override def addUser(user: User): Unit =
+    if (users.contains(user.id))
+      throw new IllegalArgumentException("User already exists")
+    else
+      users.addOne(user.id -> user)
+
+  // ...
+}
+```
+
+This might be surprising for you, as many teams are using those. There's one fundamental issue with this approach -
+in-memory implementation will never fully reflect the behavior of the real thing. Let's get into more details.
+
+### Problem 1: Illusory test coverage
+
+[//]: # (TODO: Mention concurrency issues)
+
+### Problem 2: You need integration tests anyway
+
+### What to use instead?
+
+[//]: # (TODO: Mention mock implementations of cloud services in Docker)
 
 ## Non-isolated shared resources
 
