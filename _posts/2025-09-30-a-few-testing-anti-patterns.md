@@ -546,20 +546,20 @@ in-memory implementation works correctly, not that service logic is valid.
 The same applies to third party libraries providing in-memory implementations. Let's say that we have a thin wrapper
 around a Kafka client that sends `UserAdded` events to a Kafka topic:
 
-[//]: # (@formatter:on)
+[//]: # (@formatter:off)
 
 ```scala
 class KafkaEventSender(
-                        kafkaClient: KafkaClient,
-                        eventsTopic: String
-                      ) {
+  kafkaClient: KafkaClient,
+  eventsTopic: String
+) {
 
   def sendEvent(userAdded: UserAdded): Unit =
     kafkaClient.send(eventsTopic, userAdded.serialize)
 }
 ```
 
-[//]: # (@formatter:off)
+[//]: # (@formatter:on)
 
 > For the purpose of the example, I'm simplifying a lot here. The real Kafka client interface is more complex.
 { :prompt-info }
@@ -567,7 +567,7 @@ class KafkaEventSender(
 Then, we use one of third-party libraries that provide in-memory Kafka server implementation to write a test for this
 adapter:
 
-[//]: # (@formatter:on)
+[//]: # (@formatter:off)
 
 ```scala
 test(
@@ -587,7 +587,7 @@ test(
 }
 ```
 
-[//]: # (@formatter:off)
+[//]: # (@formatter:on)
 
 You might have already guessed the issue here. We again verify the behavior of an in-memory implementation, not the
 behavior of the adapter. This case is even worse than the previous one because the in-memory implementation is outside
@@ -597,12 +597,12 @@ be different.
 
 There are also numerous other aspects worth considering here. Do in-memory implementations provide the same concurrency
 guarantees? Are the operations atomic? Are we able to add transactions to an in-memory database? Of course, I'm not
-saying that our test environment should always fully replicate the production. However, our goal should be to be 
-prepared to handle common behaviors of a live system, which might be omitted if we focus on replicating the logic 
+saying that our test environment should always fully replicate the production. However, our goal should be to be
+prepared to handle common behaviors of a live system, which might be omitted if we focus on replicating the logic
 in-memory.
 
-The last remark I have is that some of the properties of this anti-pattern may be already familiar to you. In-memory 
-implementation of an adapter is a single class, which is shared among the tests that we have to adjust to fit every 
+The last remark I have is that some of the properties of this anti-pattern may be already familiar to you. In-memory
+implementation of an adapter is a single class, which is shared among the tests that we have to adjust to fit every
 behavior under test. Does it ring a bell? Yup, it's another example of a shared "given", although not on the data level,
 but on the logic level.
 
