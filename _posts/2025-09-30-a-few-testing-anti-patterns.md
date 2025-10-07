@@ -439,15 +439,19 @@ through some kind of clients, JDBC drivers, messaging protocols, and so on. Most
 integrations are non-trivial, which makes people try to apply various shenanigans to be able to unit test the classes
 using them. Some succeed by creating their own in-memory implementations, others eventually find open-source projects
 that provide them. You can probably imagine how hard replicating the actual behavior of a constantly-changing project
-such as Kafka or S3 is, yet people still do it 
+such as Kafka or S3 is, yet people still do it
 [[1](https://github.com/mguenther/kafka-junit)][[2](https://github.com/findify/s3mock)].
 
 There is another very common subset of test classes that I'd like to also include here - in-memory databases. The most
 common example that comes to mind is H2. Another is a plethora of in-memory databases written by hand by implementing
 an interface using a built-in collection like a map. For example:
 
+[//]: # (@formatter:off)
+
 ```scala
 trait UserRepository {
+
+  def readUser(userId: UserId): Option[User]
 
   def addUser(user: User): Unit
 
@@ -457,6 +461,9 @@ trait UserRepository {
 class InMemoryUserRepository extends UserRepository {
 
   private val users = mutable.Map.empty[UserId, User]
+
+  override def readUser(userId: UserId): Option[User] =
+    users.get(userId)
 
   override def addUser(user: User): Unit =
     if (users.contains(user.id))
@@ -468,12 +475,136 @@ class InMemoryUserRepository extends UserRepository {
 }
 ```
 
+[//]: # (@formatter:on)
+
 This might be surprising for you, as many teams are using those. There's one fundamental issue with this approach -
 in-memory implementation will never fully reflect the behavior of the real thing. Let's get into more details.
 
 ### Problem 1: Illusory test coverage
 
-[//]: # (TODO: Mention concurrency issues)
+Let's start with an example service that will use the above repository:
+
+[//]: # (@formatter:off)
+
+```scala
+class UserManagementService(userRepository: UserRepository) {
+
+  private def logger = Logger[UserManagementService]
+
+  def registerUser(user: User): Unit =
+    Try {
+      logger.info(s"Registering new user: ${user.id}")
+      userRepository.addUser(user)
+    } match {
+      case Success(_) =>
+        logger.info(s"User ${user.id} successfully registered!")
+      case Failure(exception) =>
+        logger.error(s"Registration of user ${user.id} failed", exception)
+    }
+
+  // ...
+}
+```
+
+[//]: # (@formatter:on)
+
+Then, a simple test for `registerUser` would look like this:
+
+[//]: # (@formatter:on)
+
+```scala
+test(
+  """GIVEN a user to register
+    | WHEN a user with the same ID already exists
+    | THEN the operation should be a no-op
+    |""".stripMargin
+) {
+  // GIVEN
+  val existingUser = User("existing-user-id")
+  val duplicateUser = User("duplicate-user-id")
+
+  val userRepository = new InMemoryUserRepository
+  val userManagementService = new UserManagementService(userRepository)
+
+  userManagementService.registerUser(existingUser)
+
+  // WHEN
+  userManagementService.registerUser(duplicateUser)
+
+  // THEN
+  assert(userRepository.readUser(existingUser.id).contains(existingUser))
+}
+```
+
+[//]: # (@formatter:off)
+
+Great! We were able to test the behavior, so where is the problem? The problem is that we're not guaranteed that the
+repository we've defined behaves the same way as the "real" repository. Duplicate checks is a behavior defined outside 
+the test in `InMemoryUserRepository`, which is used only for testing. Effectively, this test verifies whether our
+in-memory implementation works correctly, not that service logic is valid.
+
+The same applies to third party libraries providing in-memory implementations. Let's say that we have a thin wrapper
+around a Kafka client that sends `UserAdded` events to a Kafka topic:
+
+[//]: # (@formatter:on)
+
+```scala
+class KafkaEventSender(
+                        kafkaClient: KafkaClient,
+                        eventsTopic: String
+                      ) {
+
+  def sendEvent(userAdded: UserAdded): Unit =
+    kafkaClient.send(eventsTopic, userAdded.serialize)
+}
+```
+
+[//]: # (@formatter:off)
+
+> For the purpose of the example, I'm simplifying a lot here. The real Kafka client interface is more complex.
+{ :prompt-info }
+
+Then, we use one of third-party libraries that provide in-memory Kafka server implementation to write a test for this
+adapter:
+
+[//]: # (@formatter:on)
+
+```scala
+test(
+  """GIVEN a Kafka client and a UserAdded event
+    | WHEN sendEvent is called with the event
+    | THEN the event should be sent to the events topic
+    |""".stripMargin
+) {
+  val kafkaClient = new ThirdPartyInMemoryKafkaClient()
+  val eventsTopic = "events"
+  val kafkaEventSender = new KafkaEventSender(kafkaClient, eventsTopic)
+  val userAdded = UserAdded(User("user-id"))
+
+  kafkaEventSender.sendEvent(userAdded)
+
+  assert(kafkaClient.getMessages[UserAdded](eventsTopic) == List(userAdded))
+}
+```
+
+[//]: # (@formatter:off)
+
+You might have already guessed the issue here. We again verify the behavior of an in-memory implementation, not the
+behavior of the adapter. This case is even worse than the previous one because the in-memory implementation is outside
+our codebase, and probably quite complex. I hope you now understand what I mean by "illusory coverage" - we added some
+tests, but they are effectively almost meaningless for the production code, as the actual behavior of the adapters might
+be different.
+
+There are also numerous other aspects worth considering here. Do in-memory implementations provide the same concurrency
+guarantees? Are the operations atomic? Are we able to add transactions to an in-memory database? Of course, I'm not
+saying that our test environment should always fully replicate the production. However, our goal should be to be 
+prepared to handle common behaviors of a live system, which might be omitted if we focus on replicating the logic 
+in-memory.
+
+The last remark I have is that some of the properties of this anti-pattern may be already familiar to you. In-memory 
+implementation of an adapter is a single class, which is shared among the tests that we have to adjust to fit every 
+behavior under test. Does it ring a bell? Yup, it's another example of a shared "given", although not on the data level,
+but on the logic level.
 
 ### Problem 2: You need integration tests anyway
 
