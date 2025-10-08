@@ -489,7 +489,7 @@ Let's start with an example service that will use the above repository:
 ```scala
 class UserManagementService(userRepository: UserRepository) {
 
-  private def logger = Logger[UserManagementService]
+  private val logger = Logger[UserManagementService]
 
   def registerUser(user: User): Unit =
     Try {
@@ -607,6 +607,19 @@ behavior under test. Does it ring a bell? Yup, it's another example of a shared 
 but on the logic level.
 
 ### Problem 2: You need integration tests anyway
+
+As mentioned in the previous section, no matter how hard you try, a simulation of a third-party service will never 
+replace a real service. This means that to be certain that your implementation is correct, you have to write an
+integration test anyway.
+
+A concrete evidence for that might be using the Postgres flavor of H2 database to simulate the real Postgres. You'll
+quickly find out that a lot of features, even basic ones, are simply not supported. The first thing that comes to my
+mind are triggers. If your SQL defines a trigger at some point, you cannot use H2 anymore for testing. The same 
+limitations pop up at some point during testing of other kinds of adapters, not only those for databases.
+
+If you have an integration test that verifies the same logic as the one with an in-memory adapter, then the latter 
+becomes an irrelevant duplication. There's no reason to maintain both if the first one integrates with the real service
+and verifies the behavior against it.
 
 ### What to use instead?
 
