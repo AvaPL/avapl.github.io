@@ -510,7 +510,7 @@ class UserManagementService(userRepository: UserRepository) {
 
 Then, a simple test for `registerUser` would look like this:
 
-[//]: # (@formatter:on)
+[//]: # (@formatter:off)
 
 ```scala
 test(
@@ -536,7 +536,7 @@ test(
 }
 ```
 
-[//]: # (@formatter:off)
+[//]: # (@formatter:on)
 
 Great! We were able to test the behavior, so where is the problem? The problem is that we're not guaranteed that the
 repository we've defined behaves the same way as the "real" repository. Duplicate checks is a behavior defined outside 
@@ -608,22 +608,106 @@ but on the logic level.
 
 ### Problem 2: You need integration tests anyway
 
-As mentioned in the previous section, no matter how hard you try, a simulation of a third-party service will never 
+As mentioned in the previous section, no matter how hard you try, a simulation of a third-party service will never
 replace a real service. This means that to be certain that your implementation is correct, you have to write an
 integration test anyway.
 
 A concrete evidence for that might be using the Postgres flavor of H2 database to simulate the real Postgres. You'll
 quickly find out that a lot of features, even basic ones, are simply not supported. The first thing that comes to my
-mind are triggers. If your SQL defines a trigger at some point, you cannot use H2 anymore for testing. The same 
+mind are triggers. If your SQL defines a trigger at some point, you cannot use H2 anymore for testing. The same
 limitations pop up at some point during testing of other kinds of adapters, not only those for databases.
 
-If you have an integration test that verifies the same logic as the one with an in-memory adapter, then the latter 
-becomes an irrelevant duplication. There's no reason to maintain both if the first one integrates with the real service
+If you have an integration test that verifies the same logic as the one with an in-memory adapter, then the latter
+becomes an irrelevant duplication. There's no reason to maintain both if the former one integrates with the real service
 and verifies the behavior against it.
 
 ### What to use instead?
 
-[//]: # (TODO: Mention mock implementations of cloud services in Docker)
+There are two separate areas that I'd recommend to approach from different angles - adapters and services.
+
+Let's start with testing the adapters, like `KafkaEventSender` described above or an actual implementation of
+`UserRepository` that integrates with a real database. No matter whether those will be just a thin wrappers around a
+third-party client, or actual logic like SQL queries, you have to test them against a real third-party service to be
+sure that it works as expected. So, my overall recommendation is to spin up some Docker containers and write integration
+tests for those.
+
+Of course, it's not always that easy. Sometimes the containers are not available, especially when we're integrating with
+some dedicated cloud service like S3. Amazon doesn't open-source S3, thus there's no Docker container for it. However,
+S3 is a good example, as we have several approaches to tackle that:
+
+1. Instead of using Docker, we can just create a dev environment in AWS and run our tests against it. This might incur
+   costs, but you can be sure that your code is able to talk to the real thing.
+2. We can use an S3-compatible Docker container that allows us to talk to it via the actual S3 client. An example of
+   such a project is [Minio](https://www.min.io). You have to keep in mind that although you can use the actual S3 
+   client here, the behaviour of the underlying services might differ from the real S3.
+
+There are also projects like [S3Mock](https://github.com/adobe/S3Mock) whose aim is to mimic the behavior of S3. 
+However, these have similar disadvantages as using H2 for simulating databases - at some point, you might discover that
+not every feature is implemented, and you cannot use it for testing anymore.
+   
+The second area are the services. Here, my recommendation is quite simple - use stubs or mocks that reflect the behavior 
+you expect from the adapters, including the happy paths and errors. This way you will test the behavior of you service
+rather than the adapters. Let's recall a test that was using `InMemoryUserRepository`:
+
+[//]: # (@formatter:off)
+
+```scala
+test(
+  """GIVEN a user to register
+    | WHEN a user with the same ID already exists
+    | THEN the operation should be a no-op
+    |""".stripMargin
+) {
+  // GIVEN
+  val existingUser = User("existing-user-id")
+  val duplicateUser = User("duplicate-user-id")
+
+  val userRepository = new InMemoryUserRepository
+  val userManagementService = new UserManagementService(userRepository)
+
+  userManagementService.registerUser(existingUser)
+
+  // WHEN
+  userManagementService.registerUser(duplicateUser)
+
+  // THEN
+  assert(userRepository.readUser(existingUser.id).contains(existingUser))
+}
+```
+
+[//]: # (@formatter:on)
+
+How can we improve it? Here, we want to test that our service recovers when the repository throws an exception. This can 
+be achieved with a simple stub:
+
+[//]: # (@formatter:off)
+
+```scala
+test(
+  """GIVEN a user to register
+    | WHEN a DuplicateUserError is thrown by the repository
+    | THEN the service should recover and no exception should be propagated
+    |""".stripMargin
+) {
+  // GIVEN
+  val user = User("user-id")
+
+  val userRepository = stub[UserRepository]
+  val userManagementService = new UserManagementService(userRepository)
+
+  // WHEN
+  (userRepository.addUser _).returnsWith(throw new DuplicateUserError(user.id))
+  val result = userManagementService.registerUser(user)
+
+  // THEN
+  assert(result == ())
+}
+```
+
+[//]: # (@formatter:on)
+
+This way, the only class under test is our `UserManagementService`. We don't depend on the implementation of any 
+in-memory repository with its own logic.
 
 ## Non-isolated shared resources
 
