@@ -6,46 +6,47 @@ tags: [ clean code, testing, tips ]     # TAG names should always be lowercase
 media_subpath: /assets/img/2025-10-20-a-few-testing-anti-patterns-part-1/
 ---
 
-Let's admit that - most of us don't like writing tests. Adding a new feature is often demanding enough that we don't
-have enough energy to write proper tests for it. We usually treat them as an afterthought. This is especially true when
-the feature is complex and the flow goes in various directions depending on the inputs, feature flags, or errors
+Let’s admit it — most of us don’t enjoy writing tests. Adding a new feature is often demanding enough that we rarely
+have the energy left to write proper tests for it. We tend to treat them as an afterthought. This is especially true
+when the feature is complex and the flow can take multiple paths depending on inputs, feature flags, or errors
 encountered along the way.
 
-Some of you might say that we should embrace TDD and the problem will be gone. From my point of view, that's an idyllic
-vision that falls apart in practice. When we write code, we usually have a general idea of the requirement in mind. We
-can describe the high level behavior we want to implement, but it's rather hard to attach it to a class right away. At
-the early stages of development, we don't have any interfaces or classes yet - we have to design them and usually
-refactor them along the way as the new structures emerge. This makes TDD illusory.
+Some might argue that embracing TDD would solve this problem. From my point of view, that’s an idyllic vision that falls
+apart in practice. When we write code, we usually start with a general idea of the requirement in mind. We can describe
+the high-level behavior we want to implement, but it’s difficult to immediately attach that to a specific class. In the
+early stages of development, there are no interfaces or classes yet — we have to design them and usually refactor them
+as new structures emerge. This makes TDD somewhat illusory.
 
-> While I find TDD impractical for developing new features, it shines for bugfixing. If you are able to reproduce a
-> bug and isolate it in a unit test, it acts as a perfect verification whether the fix actually works. It also makes the
-> code review much easier - you already have a proof that your solution is valid.
+> While I find TDD impractical for developing new features, it truly shines when fixing bugs. If you can reproduce a bug
+> and isolate it in a unit test, that test serves as perfect verification that the fix actually works. It also makes
+> code
+> reviews much easier — you already have proof that your solution is valid.
 > {: .prompt-tip }
 
 [//]: # (TODO: Add an image)
 
-How many times have you encountered a situation when you introduced
-a simple change and a whole host of tests fell apart? First of all, if you were in that situation, that might be a good
-sign. The code that you modify has test coverage, which means you can validate (to some extent) whether your changes
-broke the actual desired behavior. Tests in this case are a form of documentation that also acts as a safety net in case
-you're not fully aware of every aspect of the logic a piece of code implements. For this reason, the fact that the tests
-start failing shouldn't annoy you in general. What might be a reason for complaining is the reason **why** the tests are
-failing. If they do so because you've changed the actual logic, it's all good. However, if that's something only related
-to the implementation details of the test, then it's a sign that the test is not written properly.
+How many times have you encountered a situation where you introduced a simple change and a whole host of tests fell
+apart? If you have, that might actually be a good sign. The code you’re modifying has test coverage, which means you can
+verify — at least to some extent — whether your changes broke the intended behavior. In this case, tests serve as a form
+of documentation that also acts as a safety net when you’re not fully aware of every detail of the logic a piece of code
+implements.
+For that reason, failing tests shouldn’t generally annoy you. What might be worth complaining about is **why** they’re
+failing. If the failures occur because you’ve changed the actual logic, that’s perfectly fine. However, if they’re
+caused only by the test’s own implementation details, it’s a sign that the test wasn’t written properly.
 
-> An example of such an implementation detail might be an assertion that relies on the order of the elements in the
-> result when actually the order doesn't matter.
+> An example of such an implementation detail could be an assertion that relies on the order of elements in the result,
+> even though the order doesn’t actually matter.
 > {: .prompt-info }
 
-That leads us to another aspect of testing, which is editing the tests. It's not always that easy to make the tests work
-after even a simple change is introduced. Sometimes, the change is just a one-liner that requires you to modify tens
-or hundreds of tests that relied on it. For this reason, we should strive to implement our tests not only to verify the
-current logic, but also to facilitate editing them in the future.
+That brings us to another aspect of testing: editing the tests. It’s not always easy to make them work again after even
+a simple change is introduced. Sometimes the change is just a one-liner, yet it requires modifying dozens or even
+hundreds of tests that rely on it. For this reason, we should aim to design our tests not only to verify the current
+logic but also to make them easier to update in the future.
 
-This post covers a few anti-patterns that you might want to avoid in your codebase to make working with tests seamless
-for you and your teammates. If you are already committed to some of the concepts described below, it might be quite
-hard to get away from them. For this reason, you may either aim to avoid them from the beginning, or incrementally
-migrate the tests as your codebase progresses.
+This post is the first in a series that covers some anti-patterns you might want to avoid in your codebase to make
+working with tests more seamless for you and your teammates. If you’ve already adopted some of these concepts, it might
+be difficult to move away from them. In that case, you can either avoid them from the start or gradually migrate your
+tests as your codebase evolves.
 
 ## A few principles of my testing style
 
