@@ -1,9 +1,9 @@
 ---
-title: A few testing anti-patterns
-date: 2025-09-30 12:00:00 +0000
+title: A few testing anti-patterns - part 1
+date: 2025-10-20 12:00:00 +0000
 categories: [ Blog ]
 tags: [ clean code, testing, tips ]     # TAG names should always be lowercase
-media_subpath: /assets/img/2025-09-30-a-few-testing-anti-patterns/
+media_subpath: /assets/img/2025-10-20-a-few-testing-anti-patterns-part-1/
 ---
 
 Let's admit that - most of us don't like writing tests. Adding a new feature is often demanding enough that we don't
@@ -72,7 +72,7 @@ assert(area === 25)
 
 > The examples will be in Scala, but the whole post is language-agnostic. The presented concepts are universal and can
 > be applied in any language or framework, unless there's a technical limitation that prevents it.
-{: .prompt-info }
+> {: .prompt-info }
 
 Sometimes I split the sections into subsections, especially when there are stubs involved. For example:
 
@@ -129,7 +129,7 @@ use case by case.
 
 > See [this section](https://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs) of Martin
 > Fowler's "Mocks Aren't Stubs" to get more information about the differences between stubs and mocks.
-{: .prompt-tip }
+> {: .prompt-tip }
 
 I stick to the same convention in the description of the tests. Depending on the framework, my test may look like this:
 
@@ -171,7 +171,7 @@ I usually keep the same convention for unit tests and integration tests.
 > By "integration tests", I mean a test that interacts with one external component. For instance, that may be a test
 > of a repository integrating with a database. See:
 > [The Confusion About Testing Terminology](https://martinfowler.com/articles/practical-test-pyramid.html#TheConfusionAboutTestingTerminology).
-{: prompt-tip }
+> {: prompt-tip }
 
 Because I usually stick to using interfaces as class dependencies, I hardly ever have to include non-stubbed versions
 of other classes into my suites. This makes testing a lot easier, as I can test the behavior of the class under test,
@@ -389,7 +389,7 @@ Now, you can use the above method to construct instances for the test purposes.
 > `Instant.now()` is often a source of confusion when it comes to debugging as the values constantly change. What is
 > more, it might turn out that the logic in some edge cases actually depends on the exact values used, making the tests
 > flaky.
-{ :prompt-tip }
+> { :prompt-tip }
 
 Let's fix the test which verifies average rating calculation:
 
@@ -426,10 +426,6 @@ Sometimes, it might also make sense to create more domain-specific factory metho
 `anyReviewBombMovieRating`. As long as you are able to fully describe the properties of the created instance via the
 method name and its parameters, you can be sure that your test will be understood by others. Try to create methods in
 such a way that won't make the reader have to jump to their definition to understand your tests.
-
-## Shared "then"
-
-[//]: # (TODO)
 
 ## Simulating third-party services
 
@@ -539,7 +535,7 @@ test(
 [//]: # (@formatter:on)
 
 Great! We were able to test the behavior, so where is the problem? The problem is that we're not guaranteed that the
-repository we've defined behaves the same way as the "real" repository. Duplicate checks is a behavior defined outside 
+repository we've defined behaves the same way as the "real" repository. Duplicate checks is a behavior defined outside
 the test in `InMemoryUserRepository`, which is used only for testing. Effectively, this test verifies whether our
 in-memory implementation works correctly, not that service logic is valid.
 
@@ -562,7 +558,7 @@ class KafkaEventSender(
 [//]: # (@formatter:on)
 
 > For the purpose of the example, I'm simplifying a lot here. The real Kafka client interface is more complex.
-{ :prompt-info }
+> { :prompt-info }
 
 Then, we use one of third-party libraries that provide in-memory Kafka server implementation to write a test for this
 adapter:
@@ -638,14 +634,14 @@ S3 is a good example, as we have several approaches to tackle that:
 1. Instead of using Docker, we can just create a dev environment in AWS and run our tests against it. This might incur
    costs, but you can be sure that your code is able to talk to the real thing.
 2. We can use an S3-compatible Docker container that allows us to talk to it via the actual S3 client. An example of
-   such a project is [Minio](https://www.min.io). You have to keep in mind that although you can use the actual S3 
+   such a project is [Minio](https://www.min.io). You have to keep in mind that although you can use the actual S3
    client here, the behaviour of the underlying services might differ from the real S3.
 
-There are also projects like [S3Mock](https://github.com/adobe/S3Mock) whose aim is to mimic the behavior of S3. 
+There are also projects like [S3Mock](https://github.com/adobe/S3Mock) whose aim is to mimic the behavior of S3.
 However, these have similar disadvantages as using H2 for simulating databases - at some point, you might discover that
 not every feature is implemented, and you cannot use it for testing anymore.
-   
-The second area are the services. Here, my recommendation is quite simple - use stubs or mocks that reflect the behavior 
+
+The second area are the services. Here, my recommendation is quite simple - use stubs or mocks that reflect the behavior
 you expect from the adapters, including the happy paths and errors. This way you will test the behavior of you service
 rather than the adapters. Let's recall a test that was using `InMemoryUserRepository`:
 
@@ -677,7 +673,7 @@ test(
 
 [//]: # (@formatter:on)
 
-How can we improve it? Here, we want to test that our service recovers when the repository throws an exception. This can 
+How can we improve it? Here, we want to test that our service recovers when the repository throws an exception. This can
 be achieved with a simple stub:
 
 [//]: # (@formatter:off)
@@ -706,11 +702,21 @@ test(
 
 [//]: # (@formatter:on)
 
-This way, the only class under test is our `UserManagementService`. We don't depend on the implementation of any 
+This way, the only class under test is our `UserManagementService`. We don't depend on the implementation of any
 in-memory repository with its own logic.
 
-## Non-isolated shared resources
-
-## Confusing math with science
-
 ## Summary
+
+This was originally supposed to be a one-off post, but I see that it's already got quite long. That's why I've decided
+to split it into more parts. I hope that you learned something useful. I also fully understand that the concepts
+presented here might be quite controversial. Described anti-patterns are quite widely used and I saw them in all
+commercial codebases I worked with. In each case, they were a hindrance rather than an aid. Although it's not easy to
+get rid of those, maybe you'll find it easy not to start using them at all.
+
+In the following post(s), I'll cover:
+
+- Shared "then"
+- Non-isolated shared resources
+- Confusing math with science (yes, that's a testing anti-pattern!)
+
+or maybe even more if I come up with other ideas. Stay tuned!
