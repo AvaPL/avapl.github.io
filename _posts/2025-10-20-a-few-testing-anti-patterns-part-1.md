@@ -201,9 +201,9 @@ simply isn’t flexible enough to allow it without a major refactor.
 
 ## Shared "given"
 
-Let me start with an anti-pattern that actually motivated me to write this post. I've seen it far too many times, and it
-has always been a hindrance. Shared "given" is a very simple thing - you just share the test data among tests within one
-suite or among multiple suites. Here's an example of a shared "given" for a test suite that we'll use throughout this
+Let me start with an anti-pattern that actually motivated me to write this post. I’ve seen it far too often, and it’s
+always been a hindrance. Shared “given” is a very simple concept — you share test data among tests within a single suite
+or across multiple suites. Here’s an example of a shared “given” for a test suite that we’ll use throughout this
 section:
 
 [//]: # (@formatter:off)
@@ -230,39 +230,39 @@ Shared "given" above has the following characteristics:
 
 1. Shared test data in `testMovieRatings`.
 1. `movieRatingService` that is a shared instance of the class under test.
-1. `beforeAll` method that initializes the shared instance with the shared test data.
+1. A `beforeAll` method that initializes the shared instance with the shared test data.
 
-Of course, this anti-pattern often varies. The above structure is only one of many that I saw. Other common elements
-I often see are:
+Of course, this anti-pattern often varies. The structure above is just one example of many I’ve seen. Other common
+elements include:
 
-- Separate classes only to store the shared test data
-- Utility methods calls like `setupTestData()`, in either `beforeAll`, `beforeEach`, or on the test level
-- Utility mixin classes, which do the setup for you, for example `class MyTest extends WithTestData`
+- Separate classes used solely to store shared test data
+- Utility method calls like `setupTestData()`, placed in `beforeAll`, `beforeEach`, or at the test level
+- Utility mixin classes that handle setup for you, for example `class MyTest extends WithTestData`
 
-Probably there's more to it, but you for sure get the idea - we share the test data between individual tests or whole
-test suites.
+There are probably more variations, but you get the idea — test data is shared between individual tests or entire test
+suites.
 
-Why do people use it? At first, it just looks convenient. You don't have to repeat the same test data over and over
-again. What is more, if your class has a lot of parameters, there's no need to define it in every test. However, over
-time, the downsides start showing up.
+Why do people use it? At first, it seems convenient. You don’t have to repeat the same test data over and over, and if
+your class has many parameters, there’s no need to define them in every test. However, over time, the downsides start to
+become apparent.
 
 ### Problem 1: Describing "given"
 
-The first issue appears quite quickly, when you have to describe the tests. If you share the test data, you cannot
-easily describe what exactly each test is fed with. You may try to use something like "GIVEN a list of movie ratings",
-but that's quite shallow description. Usually, we want to explain every test clearly, e.g. "GIVEN movie ratings from
-multiple users" or "GIVEN multiple positive (>= 4) ratings for a single movie".
+The first issue appears quickly when you need to describe the tests. If test data is shared, it’s difficult to clearly
+explain what each test is fed with. You might try something like “GIVEN a list of movie ratings,” but that’s a
+rather shallow description. Ideally, we want to describe each test clearly, e.g., “GIVEN movie ratings from multiple
+users” or “GIVEN multiple positive (>= 4) ratings for a single movie”.
 
-Of course, you can try to just assume that the shared data is so diversified that will fulfill the requirements of
-every test, but that might quickly turn out to be either hard or impossible. We have to remember that the codebases
-evolve constantly. If multiple tests depend on shared test data, you cannot really guarantee that even a small change
-won't break their descriptions. Additionally, the tests may verify contradictory cases.
+Of course, you could assume that the shared data is diversified enough to meet the requirements of every test, but that
+often proves difficult or even impossible. Codebases evolve constantly, and if multiple tests depend on shared test
+data, there’s no guarantee that even a small change won’t break their descriptions. On top of that, tests may end up
+verifying contradictory cases.
 
 ### Problem 2: Describing "then"
 
-Another consequence of shared "given" is that it actually also affects "then". How can you define the assertions if
-you cannot be sure what the input is? The workaround I often see is that the tests often rely on the fact that the
-method under test filters the data. For example:
+Another consequence of shared “given” is that it affects the “then” section as well. How can you define assertions if
+you cannot be sure what the input is? A common workaround I often see is that tests rely on the method under test to
+filter the data. For example:
 
 [//]: # (@formatter:off)
 
@@ -283,25 +283,28 @@ test(
 
 [//]: # (@formatter:on)
 
-There are numerous issues with the above test. Let's highlight two of them:
+There are several issues with the test above. Let’s highlight 2 of them:
 
-1. As described above, the "then" is shallow, because we cannot assume anything about the input. Thus, we end up with
-   an assertion on "correct average rating", which is unclear. We always want to return correct results, don't we?
-2. To understand where the final `4.5` comes from, we have to jump to the shared test data. What is more, we have to
-   analyze it thoroughly to find all the ratings for movie with ID `111`, as they are not defined on the test level.
+1. As mentioned earlier, the “then” section is shallow because we can’t make assumptions about the input. As a result,
+   we end up with an assertion on “correct average rating,” which is unclear — we always want to yield correct results,
+   don’t we?
+1. To understand where the final value `4.5` comes from, we have to examine the shared test data. Moreover, we need to
+   analyze it thoroughly to find all the ratings for the movie with ID `111`, since they aren’t defined at the test
+   level.
 
 ### Problem 3: Creating new test cases
 
-The thing that will eventually drive your team up the wall is the ability to create new test cases.
+What will eventually drive your team up the wall is the process of creating new test cases.
 
-Let's say that your team is developing a new feature, which will mark some ratings as originating from
-[review bombing](https://en.wikipedia.org/wiki/Review_bomb). For simplicity, let's assume that you just had to add
-a simple boolean flag `isReviewBomb` to the `MovieRating` model, which is `false` by default. Of course, to properly
-verify that business logic depending on it, you have to add new test cases, which also means new test data. Because
-a shared "given" is used, you may either edit existing instances, or add new ones to the list. Now, this is the moment
-when the frustration begins. Imagine the following scenario:
+Let’s say your team is developing a new feature to mark some ratings as originating from
+[review bombing](https://en.wikipedia.org/wiki/Review_bomb). For simplicity, assume you just need to add a simple
+boolean flag, `isReviewBomb`, to the `MovieRating` model, which defaults to `false`.
 
-1. You add a new `MovieRating` instance to the list and write a new test, and you run the whole test suite.
+Of course, to properly verify any business logic that depends on this flag, you need to add new test cases — which also
+means adding new test data. Because a shared “given” is used, you might either edit existing instances or add new ones
+to the shared list. And this is where the frustration begins. Imagine the following scenario:
+
+1. You add a new `MovieRating` instance to the list and write a new test, then run the entire test suite.
 
    [//]: # (@formatter:off)
     
@@ -314,7 +317,7 @@ when the frustration begins. Imagine the following scenario:
 
     [//]: # (@formatter:on)
 
-1. It turns out that the new instance you've added affects the average rating in another test, making it fail.
+1. The new instance affects the average rating in another test, causing it to fail.
 
    [//]: # (@formatter:off)
 
@@ -325,7 +328,7 @@ when the frustration begins. Imagine the following scenario:
     ```
 
    [//]: # (@formatter:on)
-1. You fix the issue by altering the properties of the `MovieRating` you've added.
+1. You fix the issue by altering the properties of the `MovieRating` you added.
 
    [//]: # (@formatter:off)
 
@@ -334,8 +337,8 @@ when the frustration begins. Imagine the following scenario:
     ```
 
    [//]: # (@formatter:on)
-1. Now, your test fails because the properties were altered, you have to adjust it.
-1. It turns out that another test relied on the total number of movie ratings. You have to either remove one of the test
+1. Now, your test fails because the properties were changed, so you have to adjust it.
+1. It turns out that another test relied on the total number of movie ratings. You must either remove one of the test
    instances, or change the definition of the failing test.
 
    [//]: # (@formatter:off)
@@ -352,21 +355,21 @@ when the frustration begins. Imagine the following scenario:
 
 1. And so on...
 
-It happened to me far too many times. Because the tests are interdependent on the shared test data, it makes them very
-brittle. It's very frustrating when a simple change is introduced, but the test suites are written in a way that you
-cannot really alter the shared test data without breaking other test suites.
+This has happened to me far too many times. When tests are interdependent on shared test data, they become very brittle.
+It’s frustrating when a simple change is introduced, but the test suites are structured in such a way that you can’t
+modify the shared data without breaking other tests.
 
 ### What to use instead?
 
-For me, the most important rule is not to [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) the "given". Even
-when you repeat the same instances over and over again, they serve their purpose - the tests become independent, and
-contain the only data they need to verify the described behavior. They are also much easier to read as a form of
-documentation, and equally easy to modify. It's just that simple.
+For me, the most important rule is **not** to [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) the “given”.
+Even if you repeat the same instances multiple times, they serve their purpose — the tests remain independent and
+contain only the data needed to verify the described behavior. They are also much easier to read as a form of
+documentation and equally easy to modify. It’s really that simple.
 
-But what if the instances you need for testing have numerous parameters, and you need a few instances per test? Your
-"given" sections may quickly become gigantic blocks with a lot of irrelevant noise. Luckily, we can easily address that.
-All we have to do is to just create small factory methods in the test suite that will initialize parameters to
-reasonable defaults. For example, a factory method for our `MovieRating` could look like this:
+But what if the instances you need for testing have many parameters, and you require several instances per test? Your
+“given” sections can quickly become massive blocks filled with irrelevant details. Fortunately, this is easy to address.
+All you need to do is create small factory methods in the test suite that initialize parameters to reasonable defaults.
+For example, a factory method for our `MovieRating` could look like this:
 
 [//]: # (@formatter:off)
 
@@ -385,17 +388,16 @@ private lazy val anyMovieId = "111"
 
 [//]: # (@formatter:on)
 
-As you see, I also introduced zero-args methods for the IDs. This is especially convenient when the values have to
-adhere to a concrete pattern. I tend to name those `any...` to highlight that their properties may contain anything.
-Now, you can use the above method to construct instances for the test purposes.
+As you can see, I also introduced zero-argument methods for the IDs. This is especially convenient when the values need
+to follow a specific pattern. I usually name these methods `any...` to indicate that their properties can contain any
+value. Now you can use the method above to construct instances for testing purposes.
 
-> I recommend avoiding random values in those methods. Non-deterministic values like `UUID.randomUUID()` or
-> `Instant.now()` is often a source of confusion when it comes to debugging as the values constantly change. What is
-> more, it might turn out that the logic in some edge cases actually depends on the exact values used, making the tests
-> flaky.
+> I recommend avoiding random values in these methods. Non-deterministic values like `UUID.randomUUID()` or
+> `Instant.now()` are often a source of confusion during debugging, since they change constantly. Moreover, it might
+> turn out that the logic in some edge cases actually depends on the exact values used, making the tests flaky.
 > { :prompt-tip }
 
-Let's fix the test which verifies average rating calculation:
+Let's fix the test that verifies average rating calculation:
 
 [//]: # (@formatter:off)
 
@@ -422,14 +424,15 @@ test(
 
 [//]: # (@formatter:on)
 
-The test is now not only accurately described, but also the whole "given" is represented in the code. There is no
-implicit dependency on values defined elsewhere (especially, notice `movieId` was specified explicitly despite being
-equal to the default value). We also conveniently skipped specifying the `userId`, as it's irrelevant in this case.
+The test is now not only accurately described, but the entire “given” is also represented in the code. There’s no
+implicit dependency on values defined elsewhere — in particular, note that `movieId` was specified explicitly, even
+though it matches the default value. We also conveniently skipped specifying the `userId`, as it’s irrelevant in this
+case.
 
-Sometimes, it might also make sense to create more domain-specific factory methods like `anyPositiveMovieRating` or
-`anyReviewBombMovieRating`. As long as you are able to fully describe the properties of the created instance via the
-method name and its parameters, you can be sure that your test will be understood by others. Try to create methods in
-such a way that won't make the reader have to jump to their definition to understand your tests.
+Sometimes, it can also make sense to create more domain-specific factory methods, such as `anyPositiveMovieRating` or
+`anyReviewBombMovieRating`. As long as the method name and its parameters fully describe the properties of the created
+instance, you can be confident that your test will be easily understood by others. Aim to create methods in a way that
+doesn’t force the reader to jump to their definition to understand your tests on the high level.
 
 ## Simulating third-party services
 
