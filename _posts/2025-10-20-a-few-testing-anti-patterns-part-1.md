@@ -50,14 +50,14 @@ tests as your codebase evolves.
 
 ## A few principles of my testing style
 
-Before we begin with the main content of this post, let me introduce you to my testing style. I assume that every
-person or team has their own rules and I'd like to ensure that we're on the same page.
+Before we dive into the main content of this post, let me briefly introduce my testing style. I realize that every
+person or team has their own conventions, and I’d like to make sure we’re on the same page.
 
 ### given/when/then
 
-First of all, I always try to structure my tests so that they follow given/when/then structure. That doesn't always mean
-that I introduce explicit comments that separate the sections from each other, but I tend to at least leave a whitespace
-between the sections. The simplest example would be something like that:
+First of all, I always try to structure my tests so that they follow the given/when/then pattern. That doesn’t
+necessarily mean I add explicit comments to separate the sections, but I usually leave at least a blank line between
+them. The simplest example would look like this:
 
 [//]: # (@formatter:off)
 
@@ -71,11 +71,12 @@ assert(area === 25)
 
 [//]: # (@formatter:on)
 
-> The examples will be in Scala, but the whole post is language-agnostic. The presented concepts are universal and can
-> be applied in any language or framework, unless there's a technical limitation that prevents it.
+> The examples in this post are written in Scala, but the content itself is language-agnostic. The concepts discussed
+> here are universal and can be applied in any language or framework, unless there’s a technical limitation that
+> prevents it.
 > {: .prompt-info }
 
-Sometimes I split the sections into subsections, especially when there are stubs involved. For example:
+Sometimes I also split the sections into smaller parts, especially when stubs are involved. For example:
 
 [//]: # (@formatter:off)
 
@@ -104,7 +105,7 @@ assert((pushNotificationService.send _).times === 1)
 
 [//]: # (@formatter:on)
 
-Sometimes I move the stubs behavior into the "when" section:
+Sometimes I move the stubs' behavior into the "when" section:
 
 [//]: # (@formatter:off)
 
@@ -123,16 +124,16 @@ notificationService.send(userId, title, message)
 
 [//]: # (@formatter:on)
 
-Putting the behavior in "when" also makes sense if you use mocks instead - the expectations are then separated from the
-"given" section, which also makes the tests easier to read. The disadvantage of using mocks is that you usually lose a
-part of (or the whole) "then" section, as the expectations are already expressed in the "when". I tend to decide what to
-use case by case.
+Placing the behavior in the “when” section also makes sense if you use mocks instead — the expectations are then
+separated from the “given” section, which makes the tests easier to read. The downside of using mocks is that you
+usually lose part (or sometimes all) of the “then” section, since the expectations are already expressed in the “when”.
+I tend to decide which approach to use on a case-by-case basis.
 
 > See [this section](https://martinfowler.com/articles/mocksArentStubs.html#TheDifferenceBetweenMocksAndStubs) of Martin
-> Fowler's "Mocks Aren't Stubs" to get more information about the differences between stubs and mocks.
+> Fowler's "Mocks Aren't Stubs" to learn more about the differences between stubs and mocks.
 > {: .prompt-tip }
 
-I stick to the same convention in the description of the tests. Depending on the framework, my test may look like this:
+I follow the same convention in the test descriptions. Depending on the framework, my test might look like this:
 
 [//]: # (@formatter:off)
 
@@ -149,52 +150,54 @@ test(
 
 [//]: # (@formatter:on)
 
-In the description, I tend to omit the technical details if they are irrelevant for the test. In the example description
-above, I didn't include the fact that we need 3 services to fulfill this task and focused on the behavior.
+In test descriptions, I tend to omit technical details if they’re irrelevant to the test itself. In the example above, I
+didn’t mention that we need 3 services to perform this task and instead focused on the behavior.
 
-I quite often see tests that have descriptions like "happy path" or "should return a correct result". In my opinion,
-they lack any information about the tested behavior. The description is the most flexible place of our tests, which
-allows us to explain our intention the best way we can, using human language. Make use of it! You can treat laconic
+I often see tests with descriptions like “happy path” or “should return a correct result.” In my opinion, such
+descriptions provide no meaningful information about the behavior being tested. The description is the most flexible
+part of a test — it lets us explain our intention in plain, human language. Make use of that! You can treat overly brief
 descriptions as the first anti-pattern 😁
 
 ### Scope of the tests
 
-The next thing that I'd like to explain is the scope of the tests. I usually try to reduce the scope of my tests to
-a single class. There are two main reasons for it:
+The next thing I’d like to explain is the scope of tests. I usually try to limit the scope of each test suite to a
+single class. There are two main reasons for this:
 
 1. Smaller test suites are easier to reason about.
-1. 1:1 mapping between a class and a test suite is easier to maintain. I prefer to have a single `FooTest` for `Foo`
-   instead of a whole host of suites combining multiple classes, that I eventually forget about or struggle to find as
-   they are in different packages.
+1. A 1:1 mapping between a class and its test suite is easier to maintain. I prefer having a single `FooTest` for `Foo`
+   rather than a collection of suites combining multiple classes — ones I’ll eventually forget about or struggle to find
+   because they’re spread across different packages.
 
-I usually keep the same convention for unit tests and integration tests.
+I generally follow the same convention for both unit and integration tests.
 
-> By "integration tests", I mean a test that interacts with one external component. For instance, that may be a test
-> of a repository integrating with a database. See:
-> [The Confusion About Testing Terminology](https://martinfowler.com/articles/practical-test-pyramid.html#TheConfusionAboutTestingTerminology).
+> By "integration tests", I mean tests that interact with a single external component. For example, that could be a test
+> of a repository that integrates with a database. See:
+> [The Confusion About Testing Terminology](https://martinfowler.com/articles/practical-test-pyramid.html#TheConfusionAboutTestingTerminology)
+> for more details.
 > {: prompt-tip }
 
-Because I usually stick to using interfaces as class dependencies, I hardly ever have to include non-stubbed versions
-of other classes into my suites. This makes testing a lot easier, as I can test the behavior of the class under test,
-and mock/stub the other ones. This significantly reduces the scope of the tests.
+Because I usually use interfaces as class dependencies, I rarely need to include non-stubbed versions of other classes
+in my test suites. This makes testing much easier, as I can focus on the behavior of the class under test while mocking
+or stubbing the others. It also significantly reduces the scope of the tests.
 
 ### Mocks and stubs
 
-This part might be controversial, but I really frequently use both mocks and stubs. That's not because they are a
-perfect means of representing the behavior, but because they are just easy to use. Instead of having to implement
-a whole interface of methods, values tracking the arguments they are called with, counters of method calls etc.,
-I can just leverage a mocking framework that will set it up for me. I won't dive deeper into it, I just wanted to make
-you aware of it as [In-memory adapters](#in-memory-adapters) I describe below is often a substitute for mocks/stubs.
+This part might be controversial, but I frequently use both mocks and stubs. That’s not because they perfectly represent
+behavior, but because they’re simply easy to use. Instead of implementing an entire interface with methods, argument
+trackers, call counters, and so on, I can leverage a mocking framework to handle all of that for me. I won’t dive deeper
+into it here. I just wanted to make you aware that, as you’ll see in
+[Simulating third-party services](#simulating-third-party-services) below, in-memory adapters often serve as a
+substitute for mocks and stubs.
 
 ### Parallelism
 
-I have to admit that the codebases I usually work with commercially aren't parallelism-friendly. When it comes to unit
-tests, teams usually succeed. When it comes to integration tests, or other layers of the testing pyramid, I usually see
-sequential execution. That's a huge setback to the team velocity in a mature system. Lack of parallelism means that we
-have to wait longer for the tests to run locally and for the CI pipeline to finish. So, my principle is that I try to
-aim for enabling parallel execution, unfortunately with varying results. Sometimes the codebase is just not flexible
-enough to achieve it without a major refactor. But worry not! Elimination of
-[Non-isolated shared resources](#non-isolated-shared-resources) described below will help you address that.
+I have to admit that the codebases I usually work with commercially aren’t very parallelism-friendly. For unit tests,
+teams usually manage well, but for integration tests or other layers of the testing pyramid, I often see sequential
+execution. This is a significant setback for team velocity in a mature system. Lack of parallelism means we have to wait
+longer for tests to run locally and for the CI pipeline to finish.
+
+My principle is to aim for enabling parallel execution, unfortunately with varying results. Sometimes the codebase
+simply isn’t flexible enough to allow it without a major refactor.
 
 ## Shared "given"
 
