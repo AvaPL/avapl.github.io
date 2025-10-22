@@ -1,5 +1,5 @@
 ---
-title: A few testing anti-patterns - part 1
+title: A few testing anti-patterns — Part 1
 date: 2025-10-20 12:00:00 +0000
 categories: [ Blog ]
 tags: [ clean code, testing, tips ]     # TAG names should always be lowercase
@@ -23,7 +23,7 @@ as new structures emerge. This makes TDD somewhat illusory.
 > reviews much easier - you already have proof that your solution is valid.
 {: .prompt-tip }
 
-[//]: # (TODO: Add an image)
+![Fluffy monsters testing](fluffy_monsters_testing.png){: w="500"}
 
 How many times have you encountered a situation where you introduced a simple change and a whole host of tests fell
 apart? If you have, that might actually be a good sign. The code you're modifying has test coverage, which means you can
@@ -174,7 +174,7 @@ I generally follow the same convention for both unit and integration tests.
 > of a repository that integrates with a database. See:
 > [The Confusion About Testing Terminology](https://martinfowler.com/articles/practical-test-pyramid.html#TheConfusionAboutTestingTerminology)
 > for more details.
-{: prompt-tip }
+{: .prompt-tip }
 
 Because I usually use interfaces as class dependencies, I rarely need to include non-stubbed versions of other classes
 in my test suites. This makes testing much easier, as I can focus on the behavior of the class under test while mocking
@@ -185,9 +185,8 @@ or stubbing the others. It also significantly reduces the scope of the tests.
 This part might be controversial, but I frequently use both mocks and stubs. That's not because they perfectly represent
 behavior, but because they're simply easy to use. Instead of implementing an entire interface with methods, argument
 trackers, call counters, and so on, I can leverage a mocking framework to handle all of that for me. I won't dive deeper
-into it here. I just wanted to make you aware that, as you'll see in
-[Simulating third-party services](#simulating-third-party-services) below, in-memory adapters often serve as a
-substitute for mocks and stubs.
+into it here. I just wanted to make you aware that I prefer them over in-memory adapters, as you'll see in
+[Simulating third-party services](#simulating-third-party-services) below.
 
 ### Parallelism
 
@@ -198,6 +197,8 @@ longer for tests to run locally and for the CI pipeline to finish.
 
 My principle is to aim for enabling parallel execution, unfortunately with varying results. Sometimes the codebase
 simply isn't flexible enough to allow it without a major refactor.
+
+With my testing style explained, we can now move on to the first anti-pattern I want to discuss.
 
 ## Shared "given"
 
@@ -228,9 +229,9 @@ override protected def beforeAll(): Unit = {
 
 Shared "given" above has the following characteristics:
 
-1. Shared test data in `testMovieRatings`.
-1. `movieRatingService` that is a shared instance of the class under test.
-1. A `beforeAll` method that initializes the shared instance with the shared test data.
+1. Shared test data in `testMovieRatings`
+1. `movieRatingService` that is a shared instance of the class under test
+1. A `beforeAll` method that initializes the shared instance with the shared test data
 
 Of course, this anti-pattern often varies. The structure above is just one example of many I've seen. Other common
 elements include:
@@ -241,6 +242,8 @@ elements include:
 
 There are probably more variations, but you get the idea - test data is shared between individual tests or entire test
 suites.
+
+[//]: # (TODO: Add an example test using the shared data)
 
 Why do people use it? At first, it seems convenient. You don't have to repeat the same test data over and over, and if
 your class has many parameters, there's no need to define them in every test. However, over time, the downsides start to
@@ -566,7 +569,7 @@ class KafkaEventSender(
 [//]: # (@formatter:on)
 
 > For the sake of this example, I'm greatly simplifying things - the real Kafka client interface is more complex.
-{ :prompt-info }
+{: .prompt-info }
 
 Then, we use one of the third-party libraries that provides an in-memory Kafka server implementation to write a test for
 this adapter:
