@@ -436,18 +436,19 @@ doesn’t force the reader to jump to their definition to understand your tests 
 
 ## Simulating third-party services
 
-"Mock only yourself, because mocking others is rude" - this short maxim, although a bit silly, captures the essential
-rule of thumb I want to convey here. The adapters in our code more often than not interact with the external world
-through some kind of clients, JDBC drivers, messaging protocols, and so on. Most of the interfaces for those complicated
-integrations are non-trivial, which makes people try to apply various shenanigans to be able to unit test the classes
-using them. Some succeed by creating their own in-memory implementations, others eventually find open-source projects
-that provide them. You can probably imagine how hard replicating the actual behavior of a constantly-changing project
-such as Kafka or S3 is, yet people still do it
+“Mock only yourself, because mocking others is rude.” This short maxim, although a bit silly, captures the essential
+rule of thumb I want to convey here. The adapters in our code often interact with the external world through various
+clients, JDBC drivers, messaging protocols, and so on. Most interfaces for these kinds of integrations are non-trivial,
+which makes people try all sorts of shenanigans to unit test the classes using them. Some succeed by creating their own
+in-memory implementations, while others end up finding open-source projects that provide them.
+
+You can probably imagine how hard it is to replicate the actual behavior of a constantly evolving project such as Kafka
+or S3, yet people still do it
 [[1](https://github.com/mguenther/kafka-junit)][[2](https://github.com/findify/s3mock)].
 
-There is another very common subset of test classes that I'd like to also include here - in-memory databases. The most
-common example that comes to mind is H2. Another is a plethora of in-memory databases written by hand by implementing
-an interface using a built-in collection like a map. For example:
+There is another very common subset of test classes that I'd also like to include here - in-memory databases. The first
+example that comes to mind is H2. Another is the plethora of in-memory databases written by hand by implementing an
+interface using a built-in collection like a map. For example:
 
 [//]: # (@formatter:off)
 
@@ -480,12 +481,12 @@ class InMemoryUserRepository extends UserRepository {
 
 [//]: # (@formatter:on)
 
-This might be surprising for you, as many teams are using those. There's one fundamental issue with this approach -
-in-memory implementation will never fully reflect the behavior of the real thing. Let's get into more details.
+This might be surprising to you, as many teams use them. There’s one fundamental issue with this approach — an in-memory
+implementation will never fully reflect the behavior of the real thing. Let’s get into more detail.
 
 ### Problem 1: Illusory test coverage
 
-Let's start with an example service that will use the above repository:
+Let's start with a sample service that uses the repository defined above:
 
 [//]: # (@formatter:off)
 
@@ -541,13 +542,13 @@ test(
 
 [//]: # (@formatter:on)
 
-Great! We were able to test the behavior, so where is the problem? The problem is that we're not guaranteed that the
-repository we've defined behaves the same way as the "real" repository. Duplicate checks is a behavior defined outside
-the test in `InMemoryUserRepository`, which is used only for testing. Effectively, this test verifies whether our
-in-memory implementation works correctly, not that service logic is valid.
+Great! We were able to test the behavior — so where’s the problem? The issue is that we can’t guarantee that the
+repository we’ve defined behaves the same way as the real one. The duplicate check is implemented inside the
+`InMemoryUserRepository`, which exists solely for testing. As a result, this test validates the correctness of our
+in-memory implementation, not the actual service logic.
 
-The same applies to third party libraries providing in-memory implementations. Let's say that we have a thin wrapper
-around a Kafka client that sends `UserAdded` events to a Kafka topic:
+The same problem applies to third-party libraries that provide in-memory implementations. For example, let’s say we have
+a thin wrapper around a Kafka client that sends `UserAdded` events to a Kafka topic:
 
 [//]: # (@formatter:off)
 
@@ -564,11 +565,11 @@ class KafkaEventSender(
 
 [//]: # (@formatter:on)
 
-> For the purpose of the example, I'm simplifying a lot here. The real Kafka client interface is more complex.
+> For the sake of this example, I’m greatly simplifying things — the real Kafka client interface is more complex.
 > { :prompt-info }
 
-Then, we use one of third-party libraries that provide in-memory Kafka server implementation to write a test for this
-adapter:
+Then, we use one of the third-party libraries that provides an in-memory Kafka server implementation to write a test for
+this adapter:
 
 [//]: # (@formatter:off)
 
@@ -592,65 +593,62 @@ test(
 
 [//]: # (@formatter:on)
 
-You might have already guessed the issue here. We again verify the behavior of an in-memory implementation, not the
-behavior of the adapter. This case is even worse than the previous one because the in-memory implementation is outside
-our codebase, and probably quite complex. I hope you now understand what I mean by "illusory coverage" - we added some
-tests, but they are effectively almost meaningless for the production code, as the actual behavior of the adapters might
-be different.
+You might have already guessed the issue here. Once again, we’re verifying the behavior of an in-memory implementation
+rather than the behavior of the adapter itself. This case is even worse than the previous one because the in-memory
+implementation is external to our codebase and likely quite complex. I hope you now see what I mean by "illusory
+coverage" — we’ve added tests, but they’re effectively meaningless for the production code, as the real behavior of the
+adapters might differ.
 
-There are also numerous other aspects worth considering here. Do in-memory implementations provide the same concurrency
-guarantees? Are the operations atomic? Are we able to add transactions to an in-memory database? Of course, I'm not
-saying that our test environment should always fully replicate the production. However, our goal should be to be
-prepared to handle common behaviors of a live system, which might be omitted if we focus on replicating the logic
-in-memory.
+There are also several other aspects worth considering. Do in-memory implementations provide the same concurrency
+guarantees? Are their operations atomic? Can we use transactions with an in-memory database? Of course, I’m not saying
+that our test environment must always mirror production perfectly. However, our goal should be to prepare for the common
+behaviors of a live system — something we risk missing if we focus too much on replicating logic in memory.
 
-The last remark I have is that some of the properties of this anti-pattern may be already familiar to you. In-memory
-implementation of an adapter is a single class, which is shared among the tests that we have to adjust to fit every
-behavior under test. Does it ring a bell? Yup, it's another example of a shared "given", although not on the data level,
-but on the logic level.
+One final remark: some the properties of this anti-pattern might already sound familiar. An in-memory implementation of
+an adapter is a single class shared across tests, adjusted to fit each behavior under test. Does that ring a bell?
+Yup, it’s another example of a shared “given”, though this time not on the data level, but on the logic level.
 
 ### Problem 2: You need integration tests anyway
 
-As mentioned in the previous section, no matter how hard you try, a simulation of a third-party service will never
-replace a real service. This means that to be certain that your implementation is correct, you have to write an
+As mentioned in the previous section, no matter how hard you try, a simulation of a third-party service will never fully
+replace the real thing. This means that, to be certain your implementation works correctly, you’ll need to write an
 integration test anyway.
 
-A concrete evidence for that might be using the Postgres flavor of H2 database to simulate the real Postgres. You'll
-quickly find out that a lot of features, even basic ones, are simply not supported. The first thing that comes to my
-mind are triggers. If your SQL defines a trigger at some point, you cannot use H2 anymore for testing. The same
-limitations pop up at some point during testing of other kinds of adapters, not only those for databases.
+A concrete evidence for this might be using the Postgres flavor of the H2 database to simulate a real Postgres instance.
+You’ll quickly discover that many features, even basic ones, are simply not supported. The first thing that comes to my
+mind are triggers. If your SQL defines a trigger at some point, you can’t use H2 for testing anymore. Similar
+limitations eventually surface when testing other kinds of adapters, not just those for databases.
 
-If you have an integration test that verifies the same logic as the one with an in-memory adapter, then the latter
-becomes an irrelevant duplication. There's no reason to maintain both if the former one integrates with the real service
-and verifies the behavior against it.
+If you already have an integration test that verifies the same logic as the one using an in-memory adapter, the latter
+becomes redundant. There’s no reason to maintain both when the integration test works with the real service and
+validates behavior against it.
 
 ### What to use instead?
 
-There are two separate areas that I'd recommend to approach from different angles - adapters and services.
+There are two separate areas that I recommend approaching from different angles: adapters and services.
 
-Let's start with testing the adapters, like `KafkaEventSender` described above or an actual implementation of
-`UserRepository` that integrates with a real database. No matter whether those will be just a thin wrappers around a
-third-party client, or actual logic like SQL queries, you have to test them against a real third-party service to be
-sure that it works as expected. So, my overall recommendation is to spin up some Docker containers and write integration
-tests for those.
+Let’s start with testing the adapters, such as `KafkaEventSender` described above or an actual implementation of
+`UserRepository` that integrates with a real database. No matter whether these are just thin wrappers around a
+third-party client or actual logic like SQL queries, you need to test them against a real third-party service to ensure
+they work as expected. So, my overall recommendation is to spin up some Docker containers and write integration tests
+for these adapters.
 
-Of course, it's not always that easy. Sometimes the containers are not available, especially when we're integrating with
-some dedicated cloud service like S3. Amazon doesn't open-source S3, thus there's no Docker container for it. However,
-S3 is a good example, as we have several approaches to tackle that:
+Of course, this isn’t always easy. Sometimes the containers aren’t available, especially when integrating with a
+dedicated cloud service like S3. Amazon doesn’t open-source S3, so there’s no Docker container for it. However, S3
+provides a good example of alternative approaches:
 
-1. Instead of using Docker, we can just create a dev environment in AWS and run our tests against it. This might incur
-   costs, but you can be sure that your code is able to talk to the real thing.
-2. We can use an S3-compatible Docker container that allows us to talk to it via the actual S3 client. An example of
-   such a project is [Minio](https://www.min.io). You have to keep in mind that although you can use the actual S3
-   client here, the behaviour of the underlying services might differ from the real S3.
+1. Instead of Docker, you can create a dev environment in AWS and run your tests against it. This may incur costs, but
+   it ensures your code can communicate with the real service.
+2. You can use an S3-compatible Docker container that allows interaction via the actual S3 client. An example of such a
+   project is [Minio](https://www.min.io). Keep in mind that while you can use the real S3 client here, the behavior of
+   the underlying service may differ from real S3.
+3. There are also projects like [S3Mock](https://github.com/adobe/S3Mock) designed to mimic S3’s behavior in a Docker
+   container. However, these have similar limitations to using H2 for simulating databases — at some point, you may find
+   that not every feature is implemented, making it unusable for certain tests.
 
-There are also projects like [S3Mock](https://github.com/adobe/S3Mock) whose aim is to mimic the behavior of S3.
-However, these have similar disadvantages as using H2 for simulating databases - at some point, you might discover that
-not every feature is implemented, and you cannot use it for testing anymore.
-
-The second area are the services. Here, my recommendation is quite simple - use stubs or mocks that reflect the behavior
-you expect from the adapters, including the happy paths and errors. This way you will test the behavior of you service
-rather than the adapters. Let's recall a test that was using `InMemoryUserRepository`:
+The second area is services. Here, my recommendation is straightforward: use stubs or mocks that reflect the behavior
+you expect from the adapters, including happy paths and error cases. This allows you to test the behavior of your
+service rather than the adapters. Let’s recall the test that used `InMemoryUserRepository`:
 
 [//]: # (@formatter:off)
 
@@ -680,8 +678,8 @@ test(
 
 [//]: # (@formatter:on)
 
-How can we improve it? Here, we want to test that our service recovers when the repository throws an exception. This can
-be achieved with a simple stub:
+How can we improve this? Here, we want to test that our service recovers when the repository throws an exception. This
+can be achieved using a simple stub:
 
 [//]: # (@formatter:off)
 
@@ -709,21 +707,21 @@ test(
 
 [//]: # (@formatter:on)
 
-This way, the only class under test is our `UserManagementService`. We don't depend on the implementation of any
+This way, the only class under test is our `UserManagementService`. We no longer depend on the implementation of any
 in-memory repository with its own logic.
 
 ## Summary
 
-This was originally supposed to be a one-off post, but I see that it's already got quite long. That's why I've decided
-to split it into more parts. I hope that you learned something useful. I also fully understand that the concepts
-presented here might be quite controversial. Described anti-patterns are quite widely used and I saw them in all
-commercial codebases I worked with. In each case, they were a hindrance rather than an aid. Although it's not easy to
-get rid of those, maybe you'll find it easy not to start using them at all.
+This post was originally meant to be a one-off, but it’s already grown quite long. That’s why I’ve decided to split it
+into multiple parts. I hope you found something useful here. I also fully understand that the concepts presented might
+be somewhat controversial. The anti-patterns described are quite common — I’ve seen them in virtually every commercial
+codebase I’ve worked with. In each case, they were more of a hindrance than a help. While it’s not always easy to
+eliminate them, perhaps you’ll find it easier not to start using them in the first place.
 
-In the following post(s), I'll cover:
+In the following post(s), I’ll cover:
 
-- Shared "then"
+- Shared “then”
 - Non-isolated shared resources
-- Confusing math with science (yes, that's a testing anti-pattern!)
+- Confusing math with science (yes, that’s a testing anti-pattern!)
 
-or maybe even more if I come up with other ideas. Stay tuned!
+...or maybe even more, if I come up with additional ideas. Stay tuned!
