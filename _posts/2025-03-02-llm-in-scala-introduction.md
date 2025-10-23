@@ -1,5 +1,5 @@
 ---
-title: LLM in Scala - Introduction
+title: LLM in Scala — Introduction
 date: 2025-03-02 08:00:00 +0000
 categories: [ Blog ]
 tags: [ scala, scalapy, ai, llm in scala ]     # TAG names should always be lowercase
