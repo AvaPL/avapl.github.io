@@ -482,7 +482,7 @@ doesn't force the reader to jump to their definition to understand your tests on
 
 ## Simulating third-party services
 
-"Mock only yourself, because mocking others is rude." This short maxim, although a bit silly, captures the essential
+"Mock only yourself, because mocking others is rude". This short maxim, although a bit silly, captures the essential
 rule of thumb I want to convey here. The adapters in our code often interact with the external world through various
 clients, JDBC drivers, messaging protocols, and so on. Most interfaces for these kinds of integrations are non-trivial,
 which makes people try all sorts of shenanigans to unit test the classes using them. Some succeed by creating their own
@@ -662,8 +662,9 @@ integration test anyway.
 
 A concrete evidence for this might be using the Postgres flavor of the H2 database to simulate a real Postgres instance.
 You'll quickly discover that many features, even basic ones, are simply not supported. The first thing that comes to my
-mind are triggers. If your SQL defines a trigger at some point, you can't use H2 for testing anymore. Similar
-limitations eventually surface when testing other kinds of adapters, not just those for databases.
+mind are triggers. If your SQL defines a trigger at some point, you can't use H2 for testing anymore, because triggers
+are not supported. Similar limitations eventually surface when testing other kinds of adapters, not just those for
+databases.
 
 If you already have an integration test that verifies the same logic as the one using an in-memory adapter, the latter
 becomes redundant. There's no reason to maintain both when the integration test works with the real service and
@@ -680,8 +681,8 @@ they work as expected. So, my overall recommendation is to spin up some Docker c
 for these adapters.
 
 Of course, this isn't always easy. Sometimes the containers aren't available, especially when integrating with a
-dedicated cloud service like S3. Amazon doesn't open-source S3, so there's no Docker container for it. However, S3
-provides a good example of alternative approaches:
+dedicated cloud service like S3. Amazon doesn't open-source S3, so there's no Docker container for it. However, we have
+some alternative approaches available in this case:
 
 1. Instead of Docker, you can create a dev environment in AWS and run your tests against it. This may incur costs, but
    it ensures your code can communicate with the real service.
@@ -724,7 +725,7 @@ test(
 
 [//]: # (@formatter:on)
 
-How can we improve this? Here, we want to test that our service recovers when the repository throws an exception. This
+How can we improve it? Here, we want to test that our service recovers when the repository throws an exception. This
 can be achieved using a simple stub:
 
 [//]: # (@formatter:off)
