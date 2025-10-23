@@ -241,9 +241,25 @@ elements include:
 - Utility mixin classes that handle setup for you, for example `class MyTest extends WithTestData`
 
 There are probably more variations, but you get the idea - test data is shared between individual tests or entire test
-suites.
+suites. An example test may look like this:
 
-[//]: # (TODO: Add an example test using the shared data)
+[//]: # (@formatter:off)
+
+```scala
+test(
+  """GIVEN ...
+    | WHEN ...
+    | THEN ...
+    |""".stripMargin
+) {
+  // Use shared movieRatingService that contains the test data
+  val ratingsCount = movieRatingService.countUserRatings(userId = "2")
+
+  assert(ratingsCount === 15)
+}
+```
+
+[//]: # (@formatter:on)
 
 Why do people use it? At first, it seems convenient. You don't have to repeat the same test data over and over, and if
 your class has many parameters, there's no need to define them in every test. However, over time, the downsides start to
@@ -252,14 +268,14 @@ become apparent.
 ### Problem 1: Describing "given"
 
 The first issue appears quickly when you need to describe the tests. If test data is shared, it's difficult to clearly
-explain what each test is fed with. You might try something like "GIVEN a list of movie ratings," but that's a
-rather shallow description. Ideally, we want to describe each test clearly, e.g., "GIVEN movie ratings from multiple
+explain what each test is fed with. You might try something like "GIVEN a list of movie ratings", but that's a
+rather shallow description. Ideally, we want to describe each test clearly, e.g. "GIVEN movie ratings from multiple
 users" or "GIVEN multiple positive (>= 4) ratings for a single movie".
 
 Of course, you could assume that the shared data is diversified enough to meet the requirements of every test, but that
-often proves difficult or even impossible. Codebases evolve constantly, and if multiple tests depend on shared test
-data, there's no guarantee that even a small change won't break their descriptions. On top of that, tests may end up
-verifying contradictory cases.
+often proves difficult or even impossible. For instance, one test might require an empty list instead of the actual
+data. Codebases evolve constantly, and if multiple tests depend on shared test data, there's no guarantee that even a
+small change won't break their descriptions. On top of that, tests may end up verifying contradictory cases.
 
 ### Problem 2: Describing "then"
 
@@ -286,10 +302,11 @@ test(
 
 [//]: # (@formatter:on)
 
-There are several issues with the test above. Let's highlight 2 of them:
+Here, we pick the test data for only one movie, effectively filtering the test data. However, there are several issues
+with the test above. Let's highlight 2 of them:
 
 1. As mentioned earlier, the "then" section is shallow because we can't make assumptions about the input. As a result,
-   we end up with an assertion on "correct average rating," which is unclear - we always want to yield correct results,
+   we end up with an assertion on "correct average rating", which is unclear - we always want to yield correct results,
    don't we?
 1. To understand where the final value `4.5` comes from, we have to examine the shared test data. Moreover, we need to
    analyze it thoroughly to find all the ratings for the movie with ID `111`, since they aren't defined at the test
@@ -304,8 +321,9 @@ Let's say your team is developing a new feature to mark some ratings as originat
 boolean flag, `isReviewBomb`, to the `MovieRating` model, which defaults to `false`.
 
 Of course, to properly verify any business logic that depends on this flag, you need to add new test cases - which also
-means adding new test data. Because a shared "given" is used, you might either edit existing instances or add new ones
-to the shared list. And this is where the frustration begins. Imagine the following scenario:
+means adding new test data with `isReviewBomb` set to `true`. Because a shared "given" is used, you might either edit
+existing instances or add new ones to the shared list. And this is where the frustration begins. Imagine the following
+scenario:
 
 1. You add a new `MovieRating` instance to the list and write a new test, then run the entire test suite.
 
@@ -316,18 +334,38 @@ to the shared list. And this is where the frustration begins. Imagine the follow
       // other instances
       MovieRating(userId = "3", movieId = "222", rating = 1, isReviewBomb = true) // <- new instance
     )
+
+    test(
+      """GIVEN test movie ratings
+        | WHEN review bomb ratings are counted
+        | THEN correct count should be returned
+        |""".stripMargin
+    ) {
+      val movieId = "222"
+    
+      val averageRating = movieRatingService.countReviewBombRatings(movieId)
+    
+      assert(averageRating === 1)
+    }
     ```
 
-    [//]: # (@formatter:on)
+   [//]: # (@formatter:on)
 
 1. The new instance affects the average rating in another test, causing it to fail.
 
    [//]: # (@formatter:off)
 
     ```scala
-    val averageRating = movieRatingService.averageRatingForMovie("222")
+    test(
+      """GIVEN ...
+        | WHEN ...
+        | THEN ...
+        |""".stripMargin
+    ) {
+      val averageRating = movieRatingService.averageRatingForMovie("222")
 
-    assert(averageRating === 1)
+      assert(averageRating === 2.0) // <- the average was altered by our new instance
+    }
     ```
 
    [//]: # (@formatter:on)
@@ -340,21 +378,26 @@ to the shared list. And this is where the frustration begins. Imagine the follow
     ```
 
    [//]: # (@formatter:on)
-1. Now, your test fails because the properties were changed, so you have to adjust it.
+1. Now, your test fails because the `movieId` was changed, so you have to adjust it.
 1. It turns out that another test relied on the total number of movie ratings. You must either remove one of the test
    instances, or change the definition of the failing test.
 
    [//]: # (@formatter:off)
     
     ```scala
-    // ...
-    val totalRatings = movieRatingService.countAll()
-    
-    assert(totalRatings === 15)
-    // ...
+    test(
+      """GIVEN ...
+        | WHEN ...
+        | THEN ...
+        |""".stripMargin
+    ) {
+      val totalRatings = movieRatingService.countAll()
+      
+      assert(totalRatings === 15)
+    }
     ```
     
-    [//]: # (@formatter:on)
+   [//]: # (@formatter:on)
 
 1. And so on...
 
@@ -398,7 +441,7 @@ value. Now you can use the method above to construct instances for testing purpo
 > I recommend avoiding random values in these methods. Non-deterministic values like `UUID.randomUUID()` or
 > `Instant.now()` are often a source of confusion during debugging, since they change constantly. Moreover, it might
 > turn out that the logic in some edge cases actually depends on the exact values used, making the tests flaky.
-{ :prompt-tip }
+{: .prompt-tip }
 
 Let's fix the test that verifies average rating calculation:
 
